@@ -660,7 +660,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
           <span className="text-muted-foreground">{format(day, "d MMMM", { locale: pl })}</span>
           {isToday && <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-full">Dzisiaj</span>}
         </div>
-        
+
         {dayPlan && (
           <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-4">
             {(["A", "B"] as const).map((person) => (
@@ -670,26 +670,22 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                   <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
                 </div>
                 <div className="flex flex-wrap gap-3">
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
-              <span className="text-sm font-bold text-primary">{personSummary[person].calories}</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
-              <span className="text-sm font-bold text-blue-600">{personSummary[person].protein}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
-              <span className="text-sm font-bold text-amber-600">{personSummary[person].carbs}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
-              <span className="text-sm font-bold text-rose-600">{personSummary[person].fat}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">PLN</span>
-              <span className="text-sm font-bold text-emerald-600">{dayPlan.totalPrice}</span>
-            </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
+                    <span className="text-sm font-bold text-primary">{personSummary[person].calories}</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
+                    <span className="text-sm font-bold text-blue-600">{personSummary[person].protein}g</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
+                    <span className="text-sm font-bold text-amber-600">{personSummary[person].carbs}g</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
+                    <span className="text-sm font-bold text-rose-600">{personSummary[person].fat}g</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -703,179 +699,125 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
             <div key={person} className="space-y-2">
               <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Osoba {person}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {["breakfast", "lunch", "dinner", "snack"].map((mealType) => (
-            <div key={`${person}-${mealType}`} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
-              <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  {mealType === "breakfast" ? "Śniadanie" : 
-                   mealType === "lunch" ? "Obiad" : 
-                   mealType === "dinner" ? "Kolacja" : "Przekąska"}
-                </h3>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                    onClick={() => onAddIngredient(mealType, dateStr, person)}
-                    title="Dodaj składnik"
-                  >
-                    <Carrot className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddCustom(mealType, dateStr, person)}
-                    title="Add Custom"
-                  >
-                    <Plus className="w-3 h-3 border rounded-full p-0.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddMeal(mealType, dateStr, person)}
-                    title="Add Recipe"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+                {["breakfast", "lunch", "dinner", "snack"].map((mealType) => {
+                  const entries = dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === person) || [];
 
-              <div className="space-y-3 flex-1">
-                {dayPlan?.entries
-                  .filter((e: any) => e.mealType === mealType && (e.person || "A") === person)
-                  .map((entry: any) => (
-                    <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
-                      {entry.recipe ? (
-                        <div 
-                          className="w-10 h-10 rounded-lg bg-cover bg-center flex-shrink-0" 
-                          style={{ backgroundImage: `url(${entry.recipe.imageUrl})` }} 
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                          <Plus className="w-5 h-5 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={cn("text-sm font-semibold truncate", entry.isEaten && "line-through text-muted-foreground")}>
-                            {entry.recipe?.name || entry.customName}
-                          </p>
-                          {entry.recipe && (
-                            <button 
-                              onClick={() => onViewPlannedRecipe(entry.recipe, entry)}
-                              className="text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        {!entry.recipe && (
-                          <p className="text-[10px] text-muted-foreground">
-                            {entry.ingredients?.length ? `${entry.ingredients[0]?.amount || 0} g` : "Custom Item"}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-1 mt-1">
-                          {!entry.recipe && entry.ingredients?.length ? (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5"
-                                onClick={() => {
-                                  const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
-                                  const nextAmount = Math.max(1, currentAmount - 10);
-                                  onUpdateEntry(entry.id, {
-                                    ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: nextAmount }],
-                                  });
-                                }}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="text-[10px] font-medium text-center min-w-[42px]">{entry.ingredients[0]?.amount || 0} g</span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5"
-                                onClick={() => {
-                                  const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
-                                  onUpdateEntry(entry.id, {
-                                    ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: currentAmount + 10 }],
-                                  });
-                                }}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5"
-                                onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5"
-                                onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </>
-                          )}
+                  return (
+                    <div key={`${person}-${mealType}`} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
+                      <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                          {mealType === "breakfast" ? "Śniadanie" : mealType === "lunch" ? "Obiad" : mealType === "dinner" ? "Kolacja" : "Przekąska"}
+                        </h3>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => onAddIngredient(mealType, dateStr, person)} title="Dodaj składnik">
+                            <Carrot className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddCustom(mealType, dateStr, person)} title="Add Custom">
+                            <Plus className="w-3 h-3 border rounded-full p-0.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddMeal(mealType, dateStr, person)} title="Add Recipe">
+                            <Plus className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => onToggleEaten({ id: entry.id, isEaten: !entry.isEaten })}
-                          className={cn(
-                            "p-1 rounded-md transition-colors",
-                            entry.isEaten ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted"
-                          )}
-                        >
-                          {entry.isEaten ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                        </button>
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove from plan?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Remove "{entry.recipe?.name || entry.customName}" from {format(day, "EEEE", { locale: pl })}'s plan?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => onDeleteMeal({ id: entry.id, date: dateStr })}
-                                className="bg-red-500 hover:bg-red-600"
-                              >
-                                Remove
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <div className="space-y-3 flex-1">
+                        {entries.map((entry: any) => (
+                          <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
+                            {entry.recipe ? (
+                              <div className="w-10 h-10 rounded-lg bg-cover bg-center flex-shrink-0" style={{ backgroundImage: `url(${entry.recipe.imageUrl})` }} />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                                <Plus className="w-5 h-5 text-muted-foreground/30" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={cn("text-sm font-semibold truncate", entry.isEaten && "line-through text-muted-foreground")}>
+                                  {entry.recipe?.name || entry.customName}
+                                </p>
+                                {entry.recipe && (
+                                  <button onClick={() => onViewPlannedRecipe(entry.recipe, entry)} className="text-muted-foreground hover:text-primary transition-colors">
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                              {!entry.recipe && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {entry.ingredients?.length ? `${entry.ingredients[0]?.amount || 0} g` : "Custom Item"}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-1 mt-1">
+                                {!entry.recipe && entry.ingredients?.length ? (
+                                  <>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => {
+                                      const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                      const nextAmount = Math.max(1, currentAmount - 10);
+                                      onUpdateEntry(entry.id, { ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: nextAmount }] });
+                                    }}>
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="text-[10px] font-medium text-center min-w-[42px]">{entry.ingredients[0]?.amount || 0} g</span>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => {
+                                      const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                      onUpdateEntry(entry.id, { ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: currentAmount + 10 }] });
+                                    }}>
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}>
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}>
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center">
+                              <button onClick={() => onToggleEaten({ id: entry.id, isEaten: !entry.isEaten })} className={cn("p-1 rounded-md transition-colors", entry.isEaten ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}>
+                                {entry.isEaten ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                              </button>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1">
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove from plan?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Remove "{entry.recipe?.name || entry.customName}" from {format(day, "EEEE", { locale: pl })}'s plan?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDeleteMeal({ id: entry.id, date: dateStr })} className="bg-red-500 hover:bg-red-600">
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+
+                        {entries.length === 0 && (
+                          <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
+                            Empty
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                
-                {dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === person).length === 0 && (
-                  <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
-                    Empty
-                  </div>
-                )}
+                  );
+                })}
               </div>
             </div>
           ))}
