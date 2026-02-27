@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { format, addDays, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { pl } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye, Carrot } from "lucide-react";
 import { useDayPlan, useAddMealEntry, useDeleteMealEntry, useToggleEaten, useUpdateMealEntry } from "@/hooks/use-meal-plan";
 import { useRecipes } from "@/hooks/use-recipes";
 import { useIngredients } from "@/hooks/use-ingredients";
@@ -49,8 +49,10 @@ export default function MealPlan() {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isCustomOpen, setIsCustomOpen] = useState(false);
+  const [isIngredientOpen, setIsIngredientOpen] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -60,6 +62,9 @@ export default function MealPlan() {
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
+  const [ingredientAmount, setIngredientAmount] = useState(100);
 
   const startEditing = () => {
     if (!viewingRecipe || !viewingMeal) return;
@@ -151,18 +156,30 @@ export default function MealPlan() {
     });
   }, [recipes, searchQuery, selectedTag]);
 
-  const handleOpenAdd = (mealType: string, dateStr: string) => {
+  const handleOpenAdd = (mealType: string, dateStr: string, person: "A" | "B") => {
     setSelectedMealType(mealType);
     setSelectedDateStr(dateStr);
     setSearchQuery("");
     setSelectedTag(null);
+    setSelectedPerson(person);
     setIsAddOpen(true);
   };
 
-  const handleOpenCustom = (mealType: string, dateStr: string) => {
+  const handleOpenCustom = (mealType: string, dateStr: string, person: "A" | "B") => {
     setSelectedMealType(mealType);
     setSelectedDateStr(dateStr);
+    setSelectedPerson(person);
     setIsCustomOpen(true);
+  };
+
+  const handleOpenIngredient = (mealType: string, dateStr: string, person: "A" | "B") => {
+    setSelectedMealType(mealType);
+    setSelectedDateStr(dateStr);
+    setIngredientSearch("");
+    setSelectedIngredientId(null);
+    setIngredientAmount(100);
+    setSelectedPerson(person);
+    setIsIngredientOpen(true);
   };
 
   const handleAdd = (recipeId: number) => {
@@ -172,6 +189,7 @@ export default function MealPlan() {
       date: selectedDateStr,
       recipeId,
       mealType: selectedMealType,
+      person: selectedPerson,
       isEaten: false,
     }, {
       onSuccess: () => {
@@ -191,6 +209,7 @@ export default function MealPlan() {
     addEntry({
       date: selectedDateStr,
       mealType: selectedMealType,
+      person: selectedPerson,
       customName: formData.get("name") as string,
       customCalories: parseInt(formData.get("calories") as string),
       customProtein: parseFloat(formData.get("protein") as string),
@@ -206,6 +225,53 @@ export default function MealPlan() {
       }
     });
   };
+
+  const handleAddIngredient = () => {
+    if (!selectedMealType || !selectedDateStr || !selectedIngredientId || ingredientAmount <= 0 || !allAvailableIngredients) return;
+
+    const ingredient = allAvailableIngredients.find((i: any) => i.id === selectedIngredientId);
+    if (!ingredient) return;
+
+    const factor = ingredientAmount / 100;
+
+    addEntry({
+      date: selectedDateStr,
+      mealType: selectedMealType,
+      person: selectedPerson,
+      customName: ingredient.name,
+      customCalories: Math.round((ingredient.calories || 0) * factor),
+      customProtein: Number(((ingredient.protein || 0) * factor).toFixed(1)),
+      customCarbs: Number(((ingredient.carbs || 0) * factor).toFixed(1)),
+      customFat: Number(((ingredient.fat || 0) * factor).toFixed(1)),
+      servings: 1,
+      isEaten: false,
+      recipeId: null as any,
+    }, {
+      onSuccess: (entry) => {
+        updateMealEntry({
+          id: entry.id,
+          updates: {
+            ingredients: [{ ingredientId: selectedIngredientId, amount: Math.round(ingredientAmount) }],
+            servings: 1,
+          },
+        }, {
+          onSuccess: () => {
+            setIsIngredientOpen(false);
+            setSelectedMealType(null);
+            setSelectedDateStr(null);
+          }
+        });
+      }
+    });
+  };
+
+  const filteredIngredients = useMemo(() => {
+    if (!allAvailableIngredients) return [];
+    if (!ingredientSearch.trim()) return allAvailableIngredients;
+    return allAvailableIngredients.filter((ingredient: any) =>
+      ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
+    );
+  }, [allAvailableIngredients, ingredientSearch]);
 
   return (
     <Layout>
@@ -232,6 +298,7 @@ export default function MealPlan() {
             recipes={recipes}
             onAddMeal={handleOpenAdd}
             onAddCustom={handleOpenCustom}
+            onAddIngredient={handleOpenIngredient}
             onDeleteMeal={(params: any) => deleteEntry(params)}
             onToggleEaten={(params: any) => toggleEaten(params)}
             onUpdateEntry={(id: number, updates: any) => updateMealEntry({ id, updates })}
@@ -361,7 +428,7 @@ export default function MealPlan() {
               selectedMealType === "breakfast" ? "Śniadanie" : 
               selectedMealType === "lunch" ? "Obiad" : 
               selectedMealType === "dinner" ? "Kolacja" : "Przekąska"
-            } ({selectedDateStr})</DialogTitle>
+            } ({selectedDateStr}) • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -434,7 +501,7 @@ export default function MealPlan() {
       <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dodaj własny produkt</DialogTitle>
+            <DialogTitle>Dodaj własny produkt • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCustom} className="grid gap-4 mt-4">
             <div className="grid gap-2">
@@ -463,25 +530,113 @@ export default function MealPlan() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isIngredientOpen} onOpenChange={setIsIngredientOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dodaj składnik do posiłku • Osoba {selectedPerson}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <Input
+              value={ingredientSearch}
+              onChange={(e) => setIngredientSearch(e.target.value)}
+              placeholder="Szukaj składnika..."
+            />
+
+            <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+              {filteredIngredients.map((ingredient: any) => (
+                <button
+                  key={ingredient.id}
+                  onClick={() => setSelectedIngredientId(ingredient.id)}
+                  className={cn(
+                    "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
+                    selectedIngredientId === ingredient.id && "bg-primary/10 text-primary font-medium"
+                  )}
+                >
+                  {ingredient.name}
+                </button>
+              ))}
+              {filteredIngredients.length === 0 && (
+                <p className="text-sm text-muted-foreground p-3">Brak składników.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ilość (g)</label>
+              <Input
+                type="number"
+                min={1}
+                value={ingredientAmount}
+                onChange={(e) => setIngredientAmount(Number(e.target.value) || 0)}
+              />
+            </div>
+
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleAddIngredient}
+              disabled={!selectedIngredientId || ingredientAmount <= 0}
+            >
+              Dodaj składnik
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
 
-function DaySection({ day, recipes, onAddMeal, onAddCustom, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
+function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
   const dateStr = format(day, "yyyy-MM-dd");
   const { data: dayPlan, isLoading } = useDayPlan(dateStr);
   const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
 
-  const summary = useMemo(() => {
-    if (!dayPlan) return null;
+  const calculateSummary = (entries: any[]) => {
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    entries.forEach((entry: any) => {
+      const entryServings = Number(entry.servings) || 1;
+      const recipeServings = Number(entry.recipe?.servings || 1);
+      const factor = entryServings / recipeServings;
+      const ingredientsToUse = entry.ingredients?.length > 0 ? entry.ingredients : (entry.recipe?.ingredients || []);
+
+      if (ingredientsToUse.length > 0) {
+        ingredientsToUse.forEach((ri: any) => {
+          if (!ri.ingredient) return;
+          const multiplier = (ri.amount / 100) * factor;
+          calories += (ri.ingredient.calories || 0) * multiplier;
+          protein += (ri.ingredient.protein || 0) * multiplier;
+          carbs += (ri.ingredient.carbs || 0) * multiplier;
+          fat += (ri.ingredient.fat || 0) * multiplier;
+        });
+      } else {
+        calories += (entry.customCalories || 0) * entryServings;
+        protein += (entry.customProtein || 0) * entryServings;
+        carbs += (entry.customCarbs || 0) * entryServings;
+        fat += (entry.customFat || 0) * entryServings;
+      }
+    });
+
     return {
-      calories: dayPlan.totalCalories,
-      protein: dayPlan.totalProtein,
-      carbs: dayPlan.totalCarbs,
-      fat: dayPlan.totalFat,
-      price: dayPlan.totalPrice
+      calories: Math.round(calories),
+      protein: Math.round(protein),
+      carbs: Math.round(carbs),
+      fat: Math.round(fat),
     };
-  }, [dayPlan]);
+  };
+
+  const personEntries = useMemo(() => ({
+    A: dayPlan?.entries.filter((e: any) => (e.person || "A") === "A") || [],
+    B: dayPlan?.entries.filter((e: any) => (e.person || "A") === "B") || [],
+  }), [dayPlan]);
+
+  const personSummary = useMemo(() => ({
+    A: calculateSummary(personEntries.A),
+    B: calculateSummary(personEntries.B),
+  }), [personEntries]);
 
   return (
     <div className={cn("space-y-6", isToday && "bg-primary/5 -mx-4 px-4 py-8 rounded-3xl border border-primary/10")}>
@@ -491,162 +646,165 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onDeleteMeal, onTogg
           <span className="text-muted-foreground">{format(day, "d MMMM", { locale: pl })}</span>
           {isToday && <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-full">Dzisiaj</span>}
         </div>
-        
-        {summary && (
-          <div className="flex flex-wrap gap-3 md:ml-auto">
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
-              <span className="text-sm font-bold text-primary">{summary.calories}</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
-              <span className="text-sm font-bold text-blue-600">{summary.protein}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
-              <span className="text-sm font-bold text-amber-600">{summary.carbs}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
-              <span className="text-sm font-bold text-rose-600">{summary.fat}g</span>
-            </div>
-            <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">PLN</span>
-              <span className="text-sm font-bold text-emerald-600">{summary.price}</span>
-            </div>
+
+        {dayPlan && (
+          <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {(["A", "B"] as const).map((person) => (
+              <div key={person} className="rounded-2xl border border-border/60 bg-white/60 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold">Osoba {person}</span>
+                  <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
+                    <span className="text-sm font-bold text-primary">{personSummary[person].calories}</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
+                    <span className="text-sm font-bold text-blue-600">{personSummary[person].protein}g</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
+                    <span className="text-sm font-bold text-amber-600">{personSummary[person].carbs}g</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
+                    <span className="text-sm font-bold text-rose-600">{personSummary[person].fat}g</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
+      {/* Stabilized render tree for person A/B meal plan layout */}
       {isLoading ? <LoadingSpinner /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {["breakfast", "lunch", "dinner", "snack"].map((mealType) => (
-            <div key={mealType} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
-              <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  {mealType === "breakfast" ? "Śniadanie" : 
-                   mealType === "lunch" ? "Obiad" : 
-                   mealType === "dinner" ? "Kolacja" : "Przekąska"}
-                </h3>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddCustom(mealType, dateStr)}
-                    title="Add Custom"
-                  >
-                    <Plus className="w-3 h-3 border rounded-full p-0.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddMeal(mealType, dateStr)}
-                    title="Add Recipe"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+        <div className="space-y-5">
+          {(["A", "B"] as const).map((person) => (
+            <div key={person} className="space-y-2">
+              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Osoba {person}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {["breakfast", "lunch", "dinner", "snack"].map((mealType) => {
+                  const entries = dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === person) || [];
 
-              <div className="space-y-3 flex-1">
-                {dayPlan?.entries
-                  .filter((e: any) => e.mealType === mealType)
-                  .map((entry: any) => (
-                    <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
-                      {entry.recipe ? (
-                        <div 
-                          className="w-10 h-10 rounded-lg bg-cover bg-center flex-shrink-0" 
-                          style={{ backgroundImage: `url(${entry.recipe.imageUrl})` }} 
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                          <Plus className="w-5 h-5 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={cn("text-sm font-semibold truncate", entry.isEaten && "line-through text-muted-foreground")}>
-                            {entry.recipe?.name || entry.customName}
-                          </p>
-                          {entry.recipe && (
-                            <button 
-                              onClick={() => onViewPlannedRecipe(entry.recipe, entry)}
-                              className="text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        {!entry.recipe && (
-                          <p className="text-[10px] text-muted-foreground">Custom Item</p>
-                        )}
-                        <div className="flex items-center gap-1 mt-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}
-                          >
-                            <Minus className="h-3 w-3" />
+                  return (
+                    <div key={`${person}-${mealType}`} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
+                      <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                          {mealType === "breakfast" ? "Śniadanie" : mealType === "lunch" ? "Obiad" : mealType === "dinner" ? "Kolacja" : "Przekąska"}
+                        </h3>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => onAddIngredient(mealType, dateStr, person)} title="Dodaj składnik">
+                            <Carrot className="w-3.5 h-3.5" />
                           </Button>
-                          <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}
-                          >
-                            <Plus className="h-3 w-3" />
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddCustom(mealType, dateStr, person)} title="Add Custom">
+                            <Plus className="w-3 h-3 border rounded-full p-0.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddMeal(mealType, dateStr, person)} title="Add Recipe">
+                            <Plus className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => onToggleEaten({ id: entry.id, isEaten: !entry.isEaten })}
-                          className={cn(
-                            "p-1 rounded-md transition-colors",
-                            entry.isEaten ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted"
-                          )}
-                        >
-                          {entry.isEaten ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                        </button>
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove from plan?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Remove "{entry.recipe?.name || entry.customName}" from {format(day, "EEEE", { locale: pl })}'s plan?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => onDeleteMeal({ id: entry.id, date: dateStr })}
-                                className="bg-red-500 hover:bg-red-600"
-                              >
-                                Remove
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <div className="space-y-3 flex-1">
+                        {entries.map((entry: any) => (
+                          <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
+                            {entry.recipe ? (
+                              <div className="w-10 h-10 rounded-lg bg-cover bg-center flex-shrink-0" style={{ backgroundImage: `url(${entry.recipe.imageUrl})` }} />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                                <Plus className="w-5 h-5 text-muted-foreground/30" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={cn("text-sm font-semibold truncate", entry.isEaten && "line-through text-muted-foreground")}>
+                                  {entry.recipe?.name || entry.customName}
+                                </p>
+                                {entry.recipe && (
+                                  <button onClick={() => onViewPlannedRecipe(entry.recipe, entry)} className="text-muted-foreground hover:text-primary transition-colors">
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                              {!entry.recipe && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {entry.ingredients?.length ? `${entry.ingredients[0]?.amount || 0} g` : "Custom Item"}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-1 mt-1">
+                                {!entry.recipe && entry.ingredients?.length ? (
+                                  <>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => {
+                                      const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                      const nextAmount = Math.max(1, currentAmount - 10);
+                                      onUpdateEntry(entry.id, { ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: nextAmount }] });
+                                    }}>
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="text-[10px] font-medium text-center min-w-[42px]">{entry.ingredients[0]?.amount || 0} g</span>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => {
+                                      const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                      onUpdateEntry(entry.id, { ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: currentAmount + 10 }] });
+                                    }}>
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}>
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}>
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center">
+                              <button onClick={() => onToggleEaten({ id: entry.id, isEaten: !entry.isEaten })} className={cn("p-1 rounded-md transition-colors", entry.isEaten ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}>
+                                {entry.isEaten ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                              </button>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1">
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove from plan?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Remove "{entry.recipe?.name || entry.customName}" from {format(day, "EEEE", { locale: pl })}'s plan?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDeleteMeal({ id: entry.id, date: dateStr })} className="bg-red-500 hover:bg-red-600">
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+
+                        {entries.length === 0 && (
+                          <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
+                            Empty
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                
-                {dayPlan?.entries.filter((e: any) => e.mealType === mealType).length === 0 && (
-                  <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
-                    Empty
-                  </div>
-                )}
+                  );
+                })}
               </div>
             </div>
           ))}

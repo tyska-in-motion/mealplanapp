@@ -58,6 +58,7 @@ export const mealEntries = pgTable("meal_entries", {
   customCarbs: real("custom_carbs"),
   customFat: real("custom_fat"),
   mealType: text("meal_type").notNull(), // breakfast, lunch, dinner, snack
+  person: text("person").notNull().default("A"), // A or B
   servings: real("servings").notNull().default(1),
   isEaten: boolean("is_eaten").default(false),
   createdAt: timestamp("created_at").defaultNow(),
