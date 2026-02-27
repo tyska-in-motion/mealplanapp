@@ -129,8 +129,8 @@ export default function Dashboard() {
 
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
-  const entriesA = dayPlan?.entries.filter((e: any) => (e.person || "A") === "A") || [];
-  const entriesB = dayPlan?.entries.filter((e: any) => (e.person || "A") === "B") || [];
+  const allEntries = dayPlan?.entries || [];
+  const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
     const eatenEntries = entries.filter((e: any) => e.isEaten) || [];
@@ -172,8 +172,7 @@ export default function Dashboard() {
     }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
   };
 
-  const consumedA = calculateConsumed(entriesA);
-  const consumedB = calculateConsumed(entriesB);
+  const consumed = calculateConsumed(allEntries);
 
   const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
     const recipe = entry.recipe;
@@ -328,7 +327,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {(entriesA.length + entriesB.length) === 0 ? (
+        {allEntries.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-border">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <CalendarDays className="w-8 h-8 text-muted-foreground" />
@@ -343,103 +342,96 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {(["A", "B"] as const).map((person) => {
-              const personMeals = (person === "A" ? entriesA : entriesB);
-              return (
-                <div key={person} className="bg-white rounded-2xl p-5 shadow-sm border border-border/50">
-                  <h3 className="text-sm font-bold mb-4">Osoba {person}</h3>
-                  {["breakfast", "lunch", "dinner", "snack"].map((type) => {
-                    const meals = personMeals.filter((e: any) => e.mealType === type);
-                    if (!meals?.length) return null;
+            {["breakfast", "lunch", "dinner", "snack"].map((type) => {
+              const meals = allEntries.filter((e: any) => e.mealType === type);
+              if (!meals?.length) return null;
 
-                    return (
-                      <div key={`${person}-${type}`} className="mb-4 last:mb-0">
-                          <h3 className="uppercase text-xs font-bold text-muted-foreground tracking-wider mb-4">{type}</h3>
-                          <div className="space-y-3">
-                            {meals.map((meal: any) => (
-                              <div key={meal.id} className="flex items-center justify-between group">
-                                <div className="flex items-center gap-4">
-                                  <button 
-                                    onClick={() => toggleEaten({ id: meal.id, isEaten: !meal.isEaten })}
-                                    className={cn(
-                                      "transition-all duration-300",
-                                      meal.isEaten ? "text-primary" : "text-muted-foreground hover:text-primary/70"
-                                    )}
-                                  >
-                                    {meal.isEaten ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
-                                  </button>
-                                  <div className="flex flex-col flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <p className={cn(
-                                        "font-medium text-lg transition-all",
-                                        meal.isEaten && "text-muted-foreground line-through decoration-primary/50"
-                                      )}>
-                                        {meal.recipe?.name || meal.customName}
-                                      </p>
-                                      {meal.recipe && (
-                                        <button 
-                                          onClick={() => {
-                                            setViewingRecipe(meal.recipe);
-                                            setViewingMeal(meal);
-                                          }}
-                                          className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-secondary transition-colors"
-                                          title="Pokaż przepis"
-                                        >
-                                          <Eye className="w-4 h-4" />
-                                        </button>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      {meal.recipe ? (
-                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                          {(Number(meal.servings) || 1)}/{(Number(meal.recipe?.servings) || 1)} porcji
-                                        </span>
-                                      ) : (
-                                        <span className="text-[10px] font-bold text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
-                                          x{Number(meal.servings) || 1}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <Flame className="w-3 h-3" />
-                                        {meal.recipe ? (() => {
-                                          const entryServings = Number(meal.servings) || 1;
-                                          const recipeServings = Number(meal.recipe?.servings) || 1;
-                                          const factor = entryServings / recipeServings;
-                                          const total = (meal.ingredients && meal.ingredients.length > 0 ? meal.ingredients : (meal.recipe?.ingredients || [])).reduce((sum: number, ri: any) =>
-                                            sum + (ri.ingredient ? (ri.ingredient.calories * ri.amount / 100) : 0), 0
-                                          );
-                                          return Math.round(total * factor);
-                                        })() : ((meal.customCalories || 0) * (Number(meal.servings) || 1))} kcal
-                                      </p>
-                                      {meal.recipe && (
-                                        <p className="text-xs text-primary/70 font-semibold flex items-center gap-1">
-                                          <Wallet className="w-3 h-3" />
-                                          {(() => {
-                                          const entryServings = Number(meal.servings) || 1;
-                                          const recipeServings = Number(meal.recipe?.servings) || 1;
-                                          const factor = entryServings / recipeServings;
-                                          const total = (meal.ingredients && meal.ingredients.length > 0 ? meal.ingredients : (meal.recipe?.ingredients || [])).reduce((sum: number, ri: any) =>
-                                            sum + (ri.ingredient ? (ri.ingredient.price * ri.amount / 100) : 0), 0
-                                          );
-                                          return Math.round(total * factor);
-                                        })()} PLN
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div 
-                                  className="w-12 h-12 rounded-lg bg-cover bg-center border border-border/50" 
-                                  style={{ backgroundImage: `url(${meal.recipe?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'})` }} 
-                                />
-                              </div>
-                            ))}
+              return (
+                <div key={type} className="bg-white rounded-2xl p-5 shadow-sm border border-border/50">
+                  <h3 className="uppercase text-xs font-bold text-muted-foreground tracking-wider mb-4">{type}</h3>
+                  <div className="space-y-3">
+                    {meals.map((meal: any) => (
+                      <div key={meal.id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-4">
+                          <button 
+                            onClick={() => toggleEaten({ id: meal.id, isEaten: !meal.isEaten })}
+                            className={cn(
+                              "transition-all duration-300",
+                              meal.isEaten ? "text-primary" : "text-muted-foreground hover:text-primary/70"
+                            )}
+                          >
+                            {meal.isEaten ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                          </button>
+                          <div className="flex flex-col flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={cn(
+                                "font-medium text-lg transition-all",
+                                meal.isEaten && "text-muted-foreground line-through decoration-primary/50"
+                              )}>
+                                {meal.recipe?.name || meal.customName}
+                              </p>
+                              <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{personName[meal.person || "A"]}</span>
+                              {meal.recipe && (
+                                <button 
+                                  onClick={() => {
+                                    setViewingRecipe(meal.recipe);
+                                    setViewingMeal(meal);
+                                  }}
+                                  className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-secondary transition-colors"
+                                  title="Pokaż przepis"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {meal.recipe ? (
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                  {(Number(meal.servings) || 1)}/{(Number(meal.recipe?.servings) || 1)} porcji
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
+                                  x{Number(meal.servings) || 1}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Flame className="w-3 h-3" />
+                                {meal.recipe ? (() => {
+                                  const entryServings = Number(meal.servings) || 1;
+                                  const recipeServings = Number(meal.recipe?.servings) || 1;
+                                  const factor = entryServings / recipeServings;
+                                  const total = (meal.ingredients && meal.ingredients.length > 0 ? meal.ingredients : (meal.recipe?.ingredients || [])).reduce((sum: number, ri: any) =>
+                                    sum + (ri.ingredient ? (ri.ingredient.calories * ri.amount / 100) : 0), 0
+                                  );
+                                  return Math.round(total * factor);
+                                })() : ((meal.customCalories || 0) * (Number(meal.servings) || 1))} kcal
+                              </p>
+                              {meal.recipe && (
+                                <p className="text-xs text-primary/70 font-semibold flex items-center gap-1">
+                                  <Wallet className="w-3 h-3" />
+                                  {(() => {
+                                    const entryServings = Number(meal.servings) || 1;
+                                    const recipeServings = Number(meal.recipe?.servings) || 1;
+                                    const factor = entryServings / recipeServings;
+                                    const total = (meal.ingredients && meal.ingredients.length > 0 ? meal.ingredients : (meal.recipe?.ingredients || [])).reduce((sum: number, ri: any) =>
+                                      sum + (ri.ingredient ? (ri.ingredient.price * ri.amount / 100) : 0), 0
+                                    );
+                                    return Math.round(total * factor);
+                                  })()} PLN
+                                </p>
+                              )}
+                            </div>
                           </div>
+                        </div>
+                        <div 
+                          className="w-12 h-12 rounded-lg bg-cover bg-center border border-border/50" 
+                          style={{ backgroundImage: `url(${meal.recipe?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'})` }} 
+                        />
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               );
             })}

@@ -655,6 +655,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
   }), [personEntries]);
 
   const people = ["A", "B"] as const;
+  const personName: Record<"A" | "B", string> = { A: "Tysia", B: "Mati" };
   // Legacy compatibility alias for old merged references still using activePersonView.
   const activePersonView = "A" as const;
 
@@ -672,7 +673,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
             {people.map((person) => (
               <div key={person} className="rounded-2xl border border-border/60 bg-white/60 p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">Osoba {person}</span>
+                  <span className="text-sm font-bold">{personName[person]}</span>
                   <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -704,7 +705,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
         <div className="space-y-5">
           {people.map((person) => (
             <div key={person} className="space-y-2">
-              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Osoba {person}</div>
+              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{personName[person]}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {["breakfast", "lunch", "dinner", "snack"].map((mealType) => {
                   const entries = dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === person) || [];
@@ -749,6 +750,18 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                                   </button>
                                 )}
                               </div>
+                              {person === "A" && entry.recipe && (() => {
+                                const pair = dayPlan?.entries.find((e: any) =>
+                                  e.mealType === mealType && (e.person || "A") === "B" && e.recipe?.id === entry.recipe?.id
+                                );
+                                if (!pair) return null;
+                                const totalServings = (Number(entry.servings) || 1) + (Number(pair.servings) || 1);
+                                return (
+                                  <p className="text-[10px] text-primary/80">
+                                    Wspólny przepis (Tysia + Mati): łącznie {totalServings.toFixed(1)} porcji
+                                  </p>
+                                );
+                              })()}
                               {!entry.recipe && (
                                 <p className="text-[10px] text-muted-foreground">
                                   {entry.ingredients?.length ? `${entry.ingredients[0]?.amount || 0} g` : "Custom Item"}
