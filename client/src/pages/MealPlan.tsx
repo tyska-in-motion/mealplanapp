@@ -53,7 +53,6 @@ export default function MealPlan() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
-  const [activePersonView, setActivePersonView] = useState<"A" | "B">("A");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -314,7 +313,6 @@ export default function MealPlan() {
             onAddMeal={handleOpenAdd}
             onAddCustom={handleOpenCustom}
             onAddIngredient={handleOpenIngredient}
-            activePersonView={activePersonView}
             onDeleteMeal={(params: any) => deleteEntry(params)}
             onToggleEaten={(params: any) => toggleEaten(params)}
             onUpdateEntry={(id: number, updates: any) => updateMealEntry({ id, updates })}
@@ -602,21 +600,57 @@ export default function MealPlan() {
   );
 }
 
-function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, activePersonView, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
+function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
   const dateStr = format(day, "yyyy-MM-dd");
   const { data: dayPlan, isLoading } = useDayPlan(dateStr);
   const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
 
-  const summary = useMemo(() => {
-    if (!dayPlan) return null;
+  const calculateSummary = (entries: any[]) => {
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    entries.forEach((entry: any) => {
+      const entryServings = Number(entry.servings) || 1;
+      const recipeServings = Number(entry.recipe?.servings || 1);
+      const factor = entryServings / recipeServings;
+      const ingredientsToUse = entry.ingredients?.length > 0 ? entry.ingredients : (entry.recipe?.ingredients || []);
+
+      if (ingredientsToUse.length > 0) {
+        ingredientsToUse.forEach((ri: any) => {
+          if (!ri.ingredient) return;
+          const multiplier = (ri.amount / 100) * factor;
+          calories += (ri.ingredient.calories || 0) * multiplier;
+          protein += (ri.ingredient.protein || 0) * multiplier;
+          carbs += (ri.ingredient.carbs || 0) * multiplier;
+          fat += (ri.ingredient.fat || 0) * multiplier;
+        });
+      } else {
+        calories += (entry.customCalories || 0) * entryServings;
+        protein += (entry.customProtein || 0) * entryServings;
+        carbs += (entry.customCarbs || 0) * entryServings;
+        fat += (entry.customFat || 0) * entryServings;
+      }
+    });
+
     return {
-      calories: dayPlan.totalCalories,
-      protein: dayPlan.totalProtein,
-      carbs: dayPlan.totalCarbs,
-      fat: dayPlan.totalFat,
-      price: dayPlan.totalPrice
+      calories: Math.round(calories),
+      protein: Math.round(protein),
+      carbs: Math.round(carbs),
+      fat: Math.round(fat),
     };
-  }, [dayPlan]);
+  };
+
+  const personEntries = useMemo(() => ({
+    A: dayPlan?.entries.filter((e: any) => (e.person || "A") === "A") || [],
+    B: dayPlan?.entries.filter((e: any) => (e.person || "A") === "B") || [],
+  }), [dayPlan]);
+
+  const personSummary = useMemo(() => ({
+    A: calculateSummary(personEntries.A),
+    B: calculateSummary(personEntries.B),
+  }), [personEntries]);
 
   return (
     <div className={cn("space-y-6", isToday && "bg-primary/5 -mx-4 px-4 py-8 rounded-3xl border border-primary/10")}>
@@ -627,36 +661,50 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
           {isToday && <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-full">Dzisiaj</span>}
         </div>
         
-        {summary && (
-          <div className="flex flex-wrap gap-3 md:ml-auto">
+        {dayPlan && (
+          <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {(["A", "B"] as const).map((person) => (
+              <div key={person} className="rounded-2xl border border-border/60 bg-white/60 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold">Osoba {person}</span>
+                  <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
+                </div>
+                <div className="flex flex-wrap gap-3">
             <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
-              <span className="text-sm font-bold text-primary">{summary.calories}</span>
+              <span className="text-sm font-bold text-primary">{personSummary[person].calories}</span>
             </div>
             <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
-              <span className="text-sm font-bold text-blue-600">{summary.protein}g</span>
+              <span className="text-sm font-bold text-blue-600">{personSummary[person].protein}g</span>
             </div>
             <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
-              <span className="text-sm font-bold text-amber-600">{summary.carbs}g</span>
+              <span className="text-sm font-bold text-amber-600">{personSummary[person].carbs}g</span>
             </div>
             <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
-              <span className="text-sm font-bold text-rose-600">{summary.fat}g</span>
+              <span className="text-sm font-bold text-rose-600">{personSummary[person].fat}g</span>
             </div>
             <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">PLN</span>
-              <span className="text-sm font-bold text-emerald-600">{summary.price}</span>
+              <span className="text-sm font-bold text-emerald-600">{dayPlan.totalPrice}</span>
             </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       {isLoading ? <LoadingSpinner /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-5">
+          {(["A", "B"] as const).map((person) => (
+            <div key={person} className="space-y-2">
+              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Osoba {person}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {["breakfast", "lunch", "dinner", "snack"].map((mealType) => (
-            <div key={mealType} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
+            <div key={`${person}-${mealType}`} className="bg-white rounded-2xl p-4 shadow-sm border border-border/50 flex flex-col min-h-[200px]">
               <div className="flex items-center justify-between mb-4 border-b border-border/50 pb-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   {mealType === "breakfast" ? "Śniadanie" : 
@@ -668,7 +716,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                    onClick={() => onAddIngredient(mealType, dateStr, activePersonView)}
+                    onClick={() => onAddIngredient(mealType, dateStr, person)}
                     title="Dodaj składnik"
                   >
                     <Carrot className="w-3.5 h-3.5" />
@@ -677,7 +725,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddCustom(mealType, dateStr, activePersonView)}
+                    onClick={() => onAddCustom(mealType, dateStr, person)}
                     title="Add Custom"
                   >
                     <Plus className="w-3 h-3 border rounded-full p-0.5" />
@@ -686,7 +734,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddMeal(mealType, dateStr, activePersonView)}
+                    onClick={() => onAddMeal(mealType, dateStr, person)}
                     title="Add Recipe"
                   >
                     <Plus className="w-4 h-4" />
@@ -696,7 +744,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
 
               <div className="space-y-3 flex-1">
                 {dayPlan?.entries
-                  .filter((e: any) => e.mealType === mealType && (e.person || "A") === activePersonView)
+                  .filter((e: any) => e.mealType === mealType && (e.person || "A") === person)
                   .map((entry: any) => (
                     <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
                       {entry.recipe ? (
@@ -823,11 +871,14 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, act
                     </div>
                   ))}
                 
-                {dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === activePersonView).length === 0 && (
+                {dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === person).length === 0 && (
                   <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
                     Empty
                   </div>
                 )}
+              </div>
+            </div>
+          ))}
               </div>
             </div>
           ))}
