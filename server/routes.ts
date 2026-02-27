@@ -235,13 +235,7 @@ export async function registerRoutes(
       const recipeServings = Number(entry.recipe?.servings || 1);
       const factor = entryServings / recipeServings;
 
-      if (entry.customCalories !== null) {
-        totalCalories += (entry.customCalories || 0) * entryServings;
-        totalProtein += (entry.customProtein || 0) * entryServings;
-        totalCarbs += (entry.customCarbs || 0) * entryServings;
-        totalFat += (entry.customFat || 0) * entryServings;
-        // Custom items don't have price in this schema usually, but we could add if needed
-      } else {
+      if (ingredientsToUse.length > 0) {
         ingredientsToUse.forEach(ri => {
           if (!ri.ingredient) return;
           const multiplier = (ri.amount / 100) * factor;
@@ -251,6 +245,11 @@ export async function registerRoutes(
           totalFat += (ri.ingredient.fat * multiplier);
           totalPrice += (ri.ingredient.price || 0) * multiplier;
         });
+      } else if (entry.customCalories !== null) {
+        totalCalories += (entry.customCalories || 0) * entryServings;
+        totalProtein += (entry.customProtein || 0) * entryServings;
+        totalCarbs += (entry.customCarbs || 0) * entryServings;
+        totalFat += (entry.customFat || 0) * entryServings;
       }
     });
 

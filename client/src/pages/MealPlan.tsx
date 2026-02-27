@@ -706,7 +706,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                           </p>
                         )}
                         <div className="flex items-center gap-1 mt-1">
-                          {entry.ingredients?.length ? (
+                          {!entry.recipe && entry.ingredients?.length ? (
                             <>
                               <Button
                                 size="icon"
