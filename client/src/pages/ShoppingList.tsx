@@ -151,9 +151,9 @@ export default function ShoppingList() {
                             <span className="text-sm font-mono text-muted-foreground bg-secondary px-2 py-1 rounded">
                               {Math.round(item.totalAmount)} {item.unit}
                             </span>
-                            {item.unitWeight && (
+                            {Number(item.unitWeight || 0) > 0 && (
                               <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                                ok. {(item.totalAmount / item.unitWeight).toFixed(1)} szt.
+                                ok. {(item.totalAmount / Number(item.unitWeight)).toFixed(1)} szt.
                               </span>
                             )}
                           </div>
