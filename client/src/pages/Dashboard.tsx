@@ -28,6 +28,7 @@ export default function Dashboard() {
   const { mutate: toggleEaten } = useToggleEaten();
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
   const [viewingMeal, setViewingMeal] = useState<any>(null);
+  const [activePersonView, setActivePersonView] = useState<"A" | "B">("A");
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
@@ -128,8 +129,9 @@ export default function Dashboard() {
 
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
+  const personEntries = dayPlan?.entries.filter((e: any) => (e.person || "A") === activePersonView) || [];
 
-    const eatenEntries = dayPlan?.entries.filter((e: any) => e.isEaten) || [];
+    const eatenEntries = personEntries.filter((e: any) => e.isEaten) || [];
     
     const consumed = eatenEntries.reduce((acc: any, entry: any) => {
       if (entry.customCalories !== null) {
@@ -170,7 +172,7 @@ export default function Dashboard() {
       };
     }, { calories: 0, protein: 0, carbs: 0, fat: 0, cost: 0 });
 
-    const totalDayCost = dayPlan?.entries.reduce((acc: number, entry: any) => {
+    const totalDayCost = personEntries.reduce((acc: number, entry: any) => {
       const recipe = entry.recipe;
       const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
       
@@ -188,9 +190,21 @@ export default function Dashboard() {
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
+          <div className="flex items-center gap-2 mb-2">
+            {(["A", "B"] as const).map((person) => (
+              <Button
+                key={person}
+                size="sm"
+                variant={activePersonView === person ? "default" : "outline"}
+                onClick={() => setActivePersonView(person)}
+              >
+                Osoba {person}
+              </Button>
+            ))}
+          </div>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
-              {isToday ? "Twoje podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
+              {isToday ? `Podsumowanie Osoby ${activePersonView} na dziś,` : `Podsumowanie Osoby ${activePersonView} na`} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
             </p>
             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary font-bold text-sm">
               <Wallet className="w-4 h-4" />
@@ -326,7 +340,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {dayPlan?.entries.length === 0 ? (
+        {personEntries.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-border">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <CalendarDays className="w-8 h-8 text-muted-foreground" />
@@ -342,7 +356,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-4">
             {["breakfast", "lunch", "dinner", "snack"].map((type) => {
-              const meals = dayPlan?.entries.filter((e: any) => e.mealType === type);
+              const meals = personEntries.filter((e: any) => e.mealType === type);
               if (!meals?.length) return null;
 
               return (

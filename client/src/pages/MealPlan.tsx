@@ -52,6 +52,8 @@ export default function MealPlan() {
   const [isIngredientOpen, setIsIngredientOpen] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
+  const [activePersonView, setActivePersonView] = useState<"A" | "B">("A");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -155,26 +157,29 @@ export default function MealPlan() {
     });
   }, [recipes, searchQuery, selectedTag]);
 
-  const handleOpenAdd = (mealType: string, dateStr: string) => {
+  const handleOpenAdd = (mealType: string, dateStr: string, person: "A" | "B") => {
     setSelectedMealType(mealType);
     setSelectedDateStr(dateStr);
     setSearchQuery("");
     setSelectedTag(null);
+    setSelectedPerson(person);
     setIsAddOpen(true);
   };
 
-  const handleOpenCustom = (mealType: string, dateStr: string) => {
+  const handleOpenCustom = (mealType: string, dateStr: string, person: "A" | "B") => {
     setSelectedMealType(mealType);
     setSelectedDateStr(dateStr);
+    setSelectedPerson(person);
     setIsCustomOpen(true);
   };
 
-  const handleOpenIngredient = (mealType: string, dateStr: string) => {
+  const handleOpenIngredient = (mealType: string, dateStr: string, person: "A" | "B") => {
     setSelectedMealType(mealType);
     setSelectedDateStr(dateStr);
     setIngredientSearch("");
     setSelectedIngredientId(null);
     setIngredientAmount(100);
+    setSelectedPerson(person);
     setIsIngredientOpen(true);
   };
 
@@ -185,6 +190,7 @@ export default function MealPlan() {
       date: selectedDateStr,
       recipeId,
       mealType: selectedMealType,
+      person: selectedPerson,
       isEaten: false,
     }, {
       onSuccess: () => {
@@ -204,6 +210,7 @@ export default function MealPlan() {
     addEntry({
       date: selectedDateStr,
       mealType: selectedMealType,
+      person: selectedPerson,
       customName: formData.get("name") as string,
       customCalories: parseInt(formData.get("calories") as string),
       customProtein: parseFloat(formData.get("protein") as string),
@@ -231,6 +238,7 @@ export default function MealPlan() {
     addEntry({
       date: selectedDateStr,
       mealType: selectedMealType,
+      person: selectedPerson,
       customName: ingredient.name,
       customCalories: Math.round((ingredient.calories || 0) * factor),
       customProtein: Number(((ingredient.protein || 0) * factor).toFixed(1)),
@@ -283,6 +291,20 @@ export default function MealPlan() {
         </div>
       </div>
 
+
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-muted-foreground">Widok osoby:</span>
+        {(["A", "B"] as const).map((person) => (
+          <Button
+            key={person}
+            size="sm"
+            variant={activePersonView === person ? "default" : "outline"}
+            onClick={() => setActivePersonView(person)}
+          >
+            Osoba {person}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
           <DaySection 
@@ -292,6 +314,7 @@ export default function MealPlan() {
             onAddMeal={handleOpenAdd}
             onAddCustom={handleOpenCustom}
             onAddIngredient={handleOpenIngredient}
+            activePersonView={activePersonView}
             onDeleteMeal={(params: any) => deleteEntry(params)}
             onToggleEaten={(params: any) => toggleEaten(params)}
             onUpdateEntry={(id: number, updates: any) => updateMealEntry({ id, updates })}
@@ -421,7 +444,7 @@ export default function MealPlan() {
               selectedMealType === "breakfast" ? "Śniadanie" : 
               selectedMealType === "lunch" ? "Obiad" : 
               selectedMealType === "dinner" ? "Kolacja" : "Przekąska"
-            } ({selectedDateStr})</DialogTitle>
+            } ({selectedDateStr}) • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -494,7 +517,7 @@ export default function MealPlan() {
       <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dodaj własny produkt</DialogTitle>
+            <DialogTitle>Dodaj własny produkt • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCustom} className="grid gap-4 mt-4">
             <div className="grid gap-2">
@@ -527,7 +550,7 @@ export default function MealPlan() {
       <Dialog open={isIngredientOpen} onOpenChange={setIsIngredientOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dodaj składnik do posiłku</DialogTitle>
+            <DialogTitle>Dodaj składnik do posiłku • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
@@ -579,7 +602,7 @@ export default function MealPlan() {
   );
 }
 
-function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
+function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, activePersonView, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
   const dateStr = format(day, "yyyy-MM-dd");
   const { data: dayPlan, isLoading } = useDayPlan(dateStr);
   const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
@@ -645,7 +668,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                    onClick={() => onAddIngredient(mealType, dateStr)}
+                    onClick={() => onAddIngredient(mealType, dateStr, activePersonView)}
                     title="Dodaj składnik"
                   >
                     <Carrot className="w-3.5 h-3.5" />
@@ -654,7 +677,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddCustom(mealType, dateStr)}
+                    onClick={() => onAddCustom(mealType, dateStr, activePersonView)}
                     title="Add Custom"
                   >
                     <Plus className="w-3 h-3 border rounded-full p-0.5" />
@@ -663,7 +686,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                     variant="ghost" 
                     size="icon" 
                     className="h-6 w-6 text-muted-foreground hover:text-primary"
-                    onClick={() => onAddMeal(mealType, dateStr)}
+                    onClick={() => onAddMeal(mealType, dateStr, activePersonView)}
                     title="Add Recipe"
                   >
                     <Plus className="w-4 h-4" />
@@ -673,7 +696,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
 
               <div className="space-y-3 flex-1">
                 {dayPlan?.entries
-                  .filter((e: any) => e.mealType === mealType)
+                  .filter((e: any) => e.mealType === mealType && (e.person || "A") === activePersonView)
                   .map((entry: any) => (
                     <div key={entry.id} className="group relative flex items-center gap-3 bg-background p-2 rounded-xl border border-border">
                       {entry.recipe ? (
@@ -800,7 +823,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                     </div>
                   ))}
                 
-                {dayPlan?.entries.filter((e: any) => e.mealType === mealType).length === 0 && (
+                {dayPlan?.entries.filter((e: any) => e.mealType === mealType && (e.person || "A") === activePersonView).length === 0 && (
                   <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
                     Empty
                   </div>

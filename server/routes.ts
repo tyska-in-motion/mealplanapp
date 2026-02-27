@@ -284,7 +284,7 @@ export async function registerRoutes(
       
       // Ensure we only pass fields that exist in the schema to storage.updateMealEntry
       const finalUpdates: any = {};
-      const allowedFields = ['servings', 'isEaten', 'customName', 'customCalories', 'customProtein', 'customCarbs', 'customFat', 'date', 'mealType'];
+      const allowedFields = ['servings', 'isEaten', 'person', 'customName', 'customCalories', 'customProtein', 'customCarbs', 'customFat', 'date', 'mealType'];
       
       for (const field of allowedFields) {
         if (updates[field] !== undefined) {
