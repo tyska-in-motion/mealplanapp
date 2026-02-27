@@ -235,13 +235,7 @@ export async function registerRoutes(
       const recipeServings = Number(entry.recipe?.servings || 1);
       const factor = entryServings / recipeServings;
 
-      if (entry.customCalories !== null) {
-        totalCalories += (entry.customCalories || 0) * entryServings;
-        totalProtein += (entry.customProtein || 0) * entryServings;
-        totalCarbs += (entry.customCarbs || 0) * entryServings;
-        totalFat += (entry.customFat || 0) * entryServings;
-        // Custom items don't have price in this schema usually, but we could add if needed
-      } else {
+      if (ingredientsToUse.length > 0) {
         ingredientsToUse.forEach(ri => {
           if (!ri.ingredient) return;
           const multiplier = (ri.amount / 100) * factor;
@@ -251,6 +245,11 @@ export async function registerRoutes(
           totalFat += (ri.ingredient.fat * multiplier);
           totalPrice += (ri.ingredient.price || 0) * multiplier;
         });
+      } else if (entry.customCalories !== null) {
+        totalCalories += (entry.customCalories || 0) * entryServings;
+        totalProtein += (entry.customProtein || 0) * entryServings;
+        totalCarbs += (entry.customCarbs || 0) * entryServings;
+        totalFat += (entry.customFat || 0) * entryServings;
       }
     });
 
@@ -293,27 +292,36 @@ export async function registerRoutes(
         }
       }
 
-      // Update meal entry first
-      const entry = await storage.updateMealEntry(id, finalUpdates);
+      const hasEntryUpdates = Object.keys(finalUpdates).length > 0;
+      const hasIngredientUpdates = ingredientsList !== undefined;
+
+      if (!hasEntryUpdates && !hasIngredientUpdates) {
+        return res.status(400).json({ message: "Brak danych do aktualizacji" });
+      }
+
+      // Update meal entry fields only when there is anything to set.
+      let entry = await storage.getMealEntryById(id);
       if (!entry) {
         return res.status(404).json({ message: "Nie znaleziono wpisu posiłku" });
       }
 
-      // Then update ingredients if provided
-      if (ingredientsList) {
-        await storage.updateMealEntryIngredients(id, ingredientsList);
-      }
-      
-      // Force database to clear any relation caches by re-fetching everything
-      const updatedEntries = await storage.getDayEntries(entry.date);
-      const fullEntry = updatedEntries.find(e => e.id === id);
-      
-      if (!fullEntry) {
-         return res.json(entry);
+      if (hasEntryUpdates) {
+        await storage.updateMealEntry(id, finalUpdates);
       }
 
-      console.log("Updated entry sent to client:", JSON.stringify(fullEntry));
-      res.json(fullEntry);
+      // Then update ingredients if provided
+      if (hasIngredientUpdates) {
+        await storage.updateMealEntryIngredients(id, ingredientsList);
+      }
+
+      // Force database to clear any relation caches by re-fetching everything
+      entry = await storage.getMealEntryById(id);
+      if (!entry) {
+        return res.status(404).json({ message: "Nie znaleziono wpisu posiłku" });
+      }
+
+      console.log("Updated entry sent to client:", JSON.stringify(entry));
+      res.json(entry);
     } catch (err) {
       console.error("Error updating meal entry:", err);
       res.status(500).json({ message: "Błąd serwera: " + (err instanceof Error ? err.message : String(err)) });
