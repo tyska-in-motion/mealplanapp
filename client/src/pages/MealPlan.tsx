@@ -693,6 +693,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
         )}
       </div>
 
+      {/* Stabilized render tree for person A/B meal plan layout */}
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-5">
           {(["A", "B"] as const).map((person) => (
