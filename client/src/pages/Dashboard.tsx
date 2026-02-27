@@ -28,6 +28,7 @@ export default function Dashboard() {
   const { mutate: toggleEaten } = useToggleEaten();
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
   const [viewingMeal, setViewingMeal] = useState<any>(null);
+  const [activePersonView, setActivePersonView] = useState<"A" | "B">("A");
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
@@ -190,6 +191,18 @@ export default function Dashboard() {
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
+          <div className="flex items-center gap-2 mb-2">
+            {(["A", "B"] as const).map((person) => (
+              <Button
+                key={person}
+                size="sm"
+                variant={activePersonView === person ? "default" : "outline"}
+                onClick={() => setActivePersonView(person)}
+              >
+                Osoba {person}
+              </Button>
+            ))}
+          </div>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
               {isToday ? "Podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
@@ -275,11 +288,21 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
-        <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
-        <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
-        <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+        {([
+          { person: "A", consumed: consumedA },
+          { person: "B", consumed: consumedB },
+        ] as const).map(({ person, consumed }) => (
+          <div key={person} className="bg-white rounded-2xl border border-border/60 p-4">
+            <h3 className="text-sm font-bold mb-3">Osoba {person}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
+              <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
+              <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
+              <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
+            </div>
+          </div>
+        ))}
       </div>
 
       <RecipeView 
