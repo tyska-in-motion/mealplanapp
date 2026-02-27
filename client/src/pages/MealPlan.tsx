@@ -53,6 +53,8 @@ export default function MealPlan() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
+  // Legacy compatibility alias for old merged references still using activePersonView.
+  const activePersonView = selectedPerson;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -653,6 +655,8 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
   }), [personEntries]);
 
   const people = ["A", "B"] as const;
+  // Legacy compatibility alias for old merged references still using activePersonView.
+  const activePersonView = "A" as const;
 
   return (
     <div className={cn("space-y-6", isToday && "bg-primary/5 -mx-4 px-4 py-8 rounded-3xl border border-primary/10")}>
