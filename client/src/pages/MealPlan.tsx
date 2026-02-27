@@ -827,6 +827,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
           ))}
         </div>
       )}
+      {/* End of DaySection content */}
     </div>
   );
 }
