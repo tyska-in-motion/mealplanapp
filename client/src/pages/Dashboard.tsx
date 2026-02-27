@@ -28,11 +28,8 @@ export default function Dashboard() {
   const { mutate: toggleEaten } = useToggleEaten();
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
   const [viewingMeal, setViewingMeal] = useState<any>(null);
-<<<<<<< codex/add-ingredient-management-to-meal-plan-beeujm
   const [viewingPlannedServings, setViewingPlannedServings] = useState<number | undefined>(undefined);
-=======
-  const [activePersonView, setActivePersonView] = useState<"A" | "B">("A");
->>>>>>> main
+  const [viewingPlannedServings, setViewingPlannedServings] = useState<number | undefined>(undefined);
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
@@ -134,11 +131,6 @@ export default function Dashboard() {
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
   const allEntries = dayPlan?.entries || [];
-<<<<<<< codex/add-ingredient-management-to-meal-plan-beeujm
-=======
-  const entriesA = allEntries.filter((e: any) => (e.person || "A") === "A");
-  const entriesB = allEntries.filter((e: any) => (e.person || "A") === "B");
->>>>>>> main
   const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
@@ -181,7 +173,6 @@ export default function Dashboard() {
     }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
   };
 
-<<<<<<< codex/add-ingredient-management-to-meal-plan-beeujm
   const consumed = calculateConsumed(allEntries);
 
   const getPreviewServings = (meal: any) => {
@@ -206,10 +197,6 @@ export default function Dashboard() {
     setViewingMeal(meal);
     setViewingPlannedServings(getPreviewServings(meal));
   };
-=======
-  const consumedA = calculateConsumed(entriesA);
-  const consumedB = calculateConsumed(entriesB);
->>>>>>> main
 
   const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
     const recipe = entry.recipe;
@@ -325,29 +312,12 @@ export default function Dashboard() {
         </div>
       </header>
 
-<<<<<<< codex/add-ingredient-management-to-meal-plan-beeujm
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
         <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
         <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
         <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
-=======
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-        {([
-          { person: "A", consumed: consumedA },
-          { person: "B", consumed: consumedB },
-        ] as const).map(({ person, consumed }) => (
-          <div key={person} className="bg-white rounded-2xl border border-border/60 p-4">
-            <h3 className="text-sm font-bold mb-3">{personName[person]}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
-              <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
-              <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
-              <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
-            </div>
-          </div>
-        ))}
->>>>>>> main
+
       </div>
 
       <RecipeView 
@@ -419,14 +389,9 @@ export default function Dashboard() {
                               <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{personName[meal.person || "A"]}</span>
                               {meal.recipe && (
                                 <button 
-<<<<<<< codex/add-ingredient-management-to-meal-plan-beeujm
                                   onClick={() => openRecipePreview(meal)}
-=======
-                                  onClick={() => {
-                                    setViewingRecipe(meal.recipe);
-                                    setViewingMeal(meal);
-                                  }}
->>>>>>> main
+                                  onClick={() => openRecipePreview(meal)}
+
                                   className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-secondary transition-colors"
                                   title="Pokaż przepis"
                                 >
