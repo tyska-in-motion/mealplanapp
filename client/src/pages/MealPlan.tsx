@@ -292,6 +292,20 @@ export default function MealPlan() {
         </div>
       </div>
 
+
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-muted-foreground">Widok osoby:</span>
+        {(["A", "B"] as const).map((person) => (
+          <Button
+            key={person}
+            size="sm"
+            variant={activePersonView === person ? "default" : "outline"}
+            onClick={() => setActivePersonView(person)}
+          >
+            Osoba {person}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
           <DaySection 
