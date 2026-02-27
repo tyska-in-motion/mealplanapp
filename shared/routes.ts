@@ -171,6 +171,7 @@ export const api = {
       input: z.object({
         servings: z.number().optional(),
         isEaten: z.boolean().optional(),
+        person: z.enum(["A", "B"]).optional(),
         ingredients: z.array(z.object({
           ingredientId: z.number(),
           amount: z.number(),
