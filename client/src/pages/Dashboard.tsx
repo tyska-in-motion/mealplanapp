@@ -128,10 +128,13 @@ export default function Dashboard() {
 
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
+  const entriesA = dayPlan?.entries.filter((e: any) => (e.person || "A") === "A") || [];
+  const entriesB = dayPlan?.entries.filter((e: any) => (e.person || "A") === "B") || [];
 
-    const eatenEntries = dayPlan?.entries.filter((e: any) => e.isEaten) || [];
-    
-    const consumed = eatenEntries.reduce((acc: any, entry: any) => {
+  const calculateConsumed = (entries: any[]) => {
+    const eatenEntries = entries.filter((e: any) => e.isEaten) || [];
+
+    return eatenEntries.reduce((acc: any, entry: any) => {
       if (entry.customCalories !== null) {
         const s = Number(entry.servings) || 1;
         return {
@@ -145,7 +148,6 @@ export default function Dashboard() {
 
       const recipe = entry.recipe;
       const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
-      
       const entryServings = Number(entry.servings) || 1;
       const recipeServings = Number(recipe?.servings || 1);
       const factor = entryServings / recipeServings;
@@ -157,31 +159,32 @@ export default function Dashboard() {
           protein: sum.protein + (ri.ingredient.protein * ri.amount / 100),
           carbs: sum.carbs + (ri.ingredient.carbs * ri.amount / 100),
           fat: sum.fat + (ri.ingredient.fat * ri.amount / 100),
-          cost: sum.cost + ((ri.ingredient.price || 0) * ri.amount / 100),
         };
-      }, { calories: 0, protein: 0, carbs: 0, fat: 0, cost: 0 });
+      }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       return {
         calories: acc.calories + stats.calories * factor,
         protein: acc.protein + stats.protein * factor,
         carbs: acc.carbs + stats.carbs * factor,
         fat: acc.fat + stats.fat * factor,
-        cost: acc.cost + stats.cost * factor,
       };
-    }, { calories: 0, protein: 0, carbs: 0, fat: 0, cost: 0 });
+    }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+  };
 
-    const totalDayCost = dayPlan?.entries.reduce((acc: number, entry: any) => {
-      const recipe = entry.recipe;
-      const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
-      
-      const entryServings = Number(entry.servings) || 1;
-      const recipeServings = Number(recipe?.servings || 1);
-      const factor = entryServings / recipeServings;
-      
-      return acc + entryIngredients.reduce((sum: number, ri: any) =>
-        sum + ((ri.ingredient?.price || 0) * ri.amount / 100) * factor, 0
-      );
-    }, 0) || 0;
+  const consumedA = calculateConsumed(entriesA);
+  const consumedB = calculateConsumed(entriesB);
+
+  const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
+    const recipe = entry.recipe;
+    const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
+    const entryServings = Number(entry.servings) || 1;
+    const recipeServings = Number(recipe?.servings || 1);
+    const factor = entryServings / recipeServings;
+
+    return acc + entryIngredients.reduce((sum: number, ri: any) =>
+      sum + ((ri.ingredient?.price || 0) * ri.amount / 100) * factor, 0
+    );
+  }, 0) || 0;
 
   return (
     <Layout>
@@ -190,7 +193,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
-              {isToday ? "Twoje podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
+              {isToday ? "Podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
             </p>
             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary font-bold text-sm">
               <Wallet className="w-4 h-4" />
@@ -273,35 +276,21 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <NutritionRing 
-          current={consumed.calories} 
-          target={targets.targetCalories} 
-          label="Kalorie" 
-          color="hsl(var(--primary))" 
-          unit="kcal"
-        />
-        <NutritionRing 
-          current={consumed.protein} 
-          target={targets.targetProtein} 
-          label="Białko" 
-          color="#3b82f6" 
-          unit="g"
-        />
-        <NutritionRing 
-          current={consumed.carbs} 
-          target={targets.targetCarbs} 
-          label="Węgle" 
-          color="#f59e0b" 
-          unit="g"
-        />
-        <NutritionRing 
-          current={consumed.fat} 
-          target={targets.targetFat} 
-          label="Tłuszcze" 
-          color="#ef4444" 
-          unit="g"
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+        {([
+          { person: "A", consumed: consumedA },
+          { person: "B", consumed: consumedB },
+        ] as const).map(({ person, consumed }) => (
+          <div key={person} className="bg-white rounded-2xl border border-border/60 p-4">
+            <h3 className="text-sm font-bold mb-3">Osoba {person}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
+              <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
+              <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
+              <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
+            </div>
+          </div>
+        ))}
       </div>
 
       <RecipeView 
@@ -326,7 +315,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {dayPlan?.entries.length === 0 ? (
+        {(entriesA.length + entriesB.length) === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-border">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <CalendarDays className="w-8 h-8 text-muted-foreground" />
@@ -341,12 +330,17 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {["breakfast", "lunch", "dinner", "snack"].map((type) => {
-              const meals = dayPlan?.entries.filter((e: any) => e.mealType === type);
-              if (!meals?.length) return null;
-
+            {(["A", "B"] as const).map((person) => {
+              const personMeals = (person === "A" ? entriesA : entriesB);
               return (
-                <div key={type} className="bg-white rounded-2xl p-5 shadow-sm border border-border/50">
+                <div key={person} className="bg-white rounded-2xl p-5 shadow-sm border border-border/50">
+                  <h3 className="text-sm font-bold mb-4">Osoba {person}</h3>
+                  {["breakfast", "lunch", "dinner", "snack"].map((type) => {
+                    const meals = personMeals.filter((e: any) => e.mealType === type);
+                    if (!meals?.length) return null;
+
+                    return (
+                      <div key={`${person}-${type}`} className="mb-4 last:mb-0">
                           <h3 className="uppercase text-xs font-bold text-muted-foreground tracking-wider mb-4">{type}</h3>
                           <div className="space-y-3">
                             {meals.map((meal: any) => (
@@ -430,6 +424,9 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
