@@ -652,6 +652,8 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
     B: calculateSummary(personEntries.B),
   }), [personEntries]);
 
+  const people = ["A", "B"] as const;
+
   return (
     <div className={cn("space-y-6", isToday && "bg-primary/5 -mx-4 px-4 py-8 rounded-3xl border border-primary/10")}>
       <div className="flex flex-col md:flex-row md:items-baseline gap-4 mb-4">
@@ -663,7 +665,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
 
         {dayPlan && (
           <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {(["A", "B"] as const).map((person) => (
+            {people.map((person) => (
               <div key={person} className="rounded-2xl border border-border/60 bg-white/60 p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-bold">Osoba {person}</span>
@@ -696,7 +698,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
       {/* Stabilized render tree for person A/B meal plan layout */}
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-5">
-          {(["A", "B"] as const).map((person) => (
+          {people.map((person) => (
             <div key={person} className="space-y-2">
               <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Osoba {person}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -819,9 +821,6 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ))}
               </div>
             </div>
           ))}
