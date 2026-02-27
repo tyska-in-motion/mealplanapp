@@ -37,6 +37,7 @@ export interface IStorage {
 
   // Meal Plan
   getDayEntries(date: string): Promise<MealEntryWithRecipe[]>;
+  getMealEntryById(id: number): Promise<MealEntryWithRecipe | undefined>;
   createMealEntry(entry: CreateMealEntryRequest): Promise<MealEntry>;
   updateMealEntry(id: number, updates: Partial<MealEntry> & { servings?: number }): Promise<MealEntry>;
   deleteMealEntry(id: number): Promise<void>;
@@ -227,6 +228,30 @@ export class DatabaseStorage implements IStorage {
       }
     });
     return entries as MealEntryWithRecipe[];
+  }
+
+  async getMealEntryById(id: number): Promise<MealEntryWithRecipe | undefined> {
+    const entry = await db.query.mealEntries.findFirst({
+      where: eq(mealEntries.id, id),
+      with: {
+        recipe: {
+          with: {
+            ingredients: {
+              with: {
+                ingredient: true
+              }
+            }
+          }
+        },
+        ingredients: {
+          with: {
+            ingredient: true
+          }
+        }
+      }
+    });
+
+    return entry as MealEntryWithRecipe | undefined;
   }
 
   async createMealEntry(entry: CreateMealEntryRequest): Promise<MealEntry> {
