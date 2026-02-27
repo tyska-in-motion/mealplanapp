@@ -130,6 +130,8 @@ export default function Dashboard() {
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
   const allEntries = dayPlan?.entries || [];
+  const entriesA = allEntries.filter((e: any) => (e.person || "A") === "A");
+  const entriesB = allEntries.filter((e: any) => (e.person || "A") === "B");
   const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
@@ -172,7 +174,8 @@ export default function Dashboard() {
     }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
   };
 
-  const consumed = calculateConsumed(allEntries);
+  const consumedA = calculateConsumed(entriesA);
+  const consumedB = calculateConsumed(entriesB);
 
   const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
     const recipe = entry.recipe;
@@ -294,7 +297,7 @@ export default function Dashboard() {
           { person: "B", consumed: consumedB },
         ] as const).map(({ person, consumed }) => (
           <div key={person} className="bg-white rounded-2xl border border-border/60 p-4">
-            <h3 className="text-sm font-bold mb-3">Osoba {person}</h3>
+            <h3 className="text-sm font-bold mb-3">{personName[person]}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <NutritionRing current={consumed.calories} target={targets.targetCalories} label="Kalorie" color="hsl(var(--primary))" unit="kcal" />
               <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
