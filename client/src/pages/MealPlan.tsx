@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { format, addDays, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { pl } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye, Carrot } from "lucide-react";
 import { useDayPlan, useAddMealEntry, useDeleteMealEntry, useToggleEaten, useUpdateMealEntry } from "@/hooks/use-meal-plan";
 import { useRecipes } from "@/hooks/use-recipes";
 import { useIngredients } from "@/hooks/use-ingredients";
@@ -49,6 +49,7 @@ export default function MealPlan() {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isCustomOpen, setIsCustomOpen] = useState(false);
+  const [isIngredientOpen, setIsIngredientOpen] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,6 +61,9 @@ export default function MealPlan() {
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
+  const [ingredientAmount, setIngredientAmount] = useState(100);
 
   const startEditing = () => {
     if (!viewingRecipe || !viewingMeal) return;
@@ -165,6 +169,15 @@ export default function MealPlan() {
     setIsCustomOpen(true);
   };
 
+  const handleOpenIngredient = (mealType: string, dateStr: string) => {
+    setSelectedMealType(mealType);
+    setSelectedDateStr(dateStr);
+    setIngredientSearch("");
+    setSelectedIngredientId(null);
+    setIngredientAmount(100);
+    setIsIngredientOpen(true);
+  };
+
   const handleAdd = (recipeId: number) => {
     if (!selectedMealType || !selectedDateStr) return;
     
@@ -207,6 +220,52 @@ export default function MealPlan() {
     });
   };
 
+  const handleAddIngredient = () => {
+    if (!selectedMealType || !selectedDateStr || !selectedIngredientId || ingredientAmount <= 0 || !allAvailableIngredients) return;
+
+    const ingredient = allAvailableIngredients.find((i: any) => i.id === selectedIngredientId);
+    if (!ingredient) return;
+
+    const factor = ingredientAmount / 100;
+
+    addEntry({
+      date: selectedDateStr,
+      mealType: selectedMealType,
+      customName: ingredient.name,
+      customCalories: Math.round((ingredient.calories || 0) * factor),
+      customProtein: Number(((ingredient.protein || 0) * factor).toFixed(1)),
+      customCarbs: Number(((ingredient.carbs || 0) * factor).toFixed(1)),
+      customFat: Number(((ingredient.fat || 0) * factor).toFixed(1)),
+      servings: 1,
+      isEaten: false,
+      recipeId: null as any,
+    }, {
+      onSuccess: (entry) => {
+        updateMealEntry({
+          id: entry.id,
+          updates: {
+            ingredients: [{ ingredientId: selectedIngredientId, amount: Math.round(ingredientAmount) }],
+            servings: 1,
+          },
+        }, {
+          onSuccess: () => {
+            setIsIngredientOpen(false);
+            setSelectedMealType(null);
+            setSelectedDateStr(null);
+          }
+        });
+      }
+    });
+  };
+
+  const filteredIngredients = useMemo(() => {
+    if (!allAvailableIngredients) return [];
+    if (!ingredientSearch.trim()) return allAvailableIngredients;
+    return allAvailableIngredients.filter((ingredient: any) =>
+      ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
+    );
+  }, [allAvailableIngredients, ingredientSearch]);
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-8">
@@ -232,6 +291,7 @@ export default function MealPlan() {
             recipes={recipes}
             onAddMeal={handleOpenAdd}
             onAddCustom={handleOpenCustom}
+            onAddIngredient={handleOpenIngredient}
             onDeleteMeal={(params: any) => deleteEntry(params)}
             onToggleEaten={(params: any) => toggleEaten(params)}
             onUpdateEntry={(id: number, updates: any) => updateMealEntry({ id, updates })}
@@ -463,11 +523,63 @@ export default function MealPlan() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isIngredientOpen} onOpenChange={setIsIngredientOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dodaj składnik do posiłku</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <Input
+              value={ingredientSearch}
+              onChange={(e) => setIngredientSearch(e.target.value)}
+              placeholder="Szukaj składnika..."
+            />
+
+            <div className="max-h-56 overflow-y-auto rounded-lg border border-border">
+              {filteredIngredients.map((ingredient: any) => (
+                <button
+                  key={ingredient.id}
+                  onClick={() => setSelectedIngredientId(ingredient.id)}
+                  className={cn(
+                    "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
+                    selectedIngredientId === ingredient.id && "bg-primary/10 text-primary font-medium"
+                  )}
+                >
+                  {ingredient.name}
+                </button>
+              ))}
+              {filteredIngredients.length === 0 && (
+                <p className="text-sm text-muted-foreground p-3">Brak składników.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ilość (g)</label>
+              <Input
+                type="number"
+                min={1}
+                value={ingredientAmount}
+                onChange={(e) => setIngredientAmount(Number(e.target.value) || 0)}
+              />
+            </div>
+
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              onClick={handleAddIngredient}
+              disabled={!selectedIngredientId || ingredientAmount <= 0}
+            >
+              Dodaj składnik
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
 
-function DaySection({ day, recipes, onAddMeal, onAddCustom, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
+function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onDeleteMeal, onToggleEaten, onUpdateEntry, onViewRecipe, onViewPlannedRecipe }: any) {
   const dateStr = format(day, "yyyy-MM-dd");
   const { data: dayPlan, isLoading } = useDayPlan(dateStr);
   const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
@@ -532,6 +644,15 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onDeleteMeal, onTogg
                   <Button 
                     variant="ghost" 
                     size="icon" 
+                    className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    onClick={() => onAddIngredient(mealType, dateStr)}
+                    title="Dodaj składnik"
+                  >
+                    <Carrot className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
                     className="h-6 w-6 text-muted-foreground hover:text-primary"
                     onClick={() => onAddCustom(mealType, dateStr)}
                     title="Add Custom"
@@ -580,26 +701,63 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onDeleteMeal, onTogg
                           )}
                         </div>
                         {!entry.recipe && (
-                          <p className="text-[10px] text-muted-foreground">Custom Item</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {entry.ingredients?.length ? `${entry.ingredients[0]?.amount || 0} g` : "Custom Item"}
+                          </p>
                         )}
                         <div className="flex items-center gap-1 mt-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                          {entry.ingredients?.length ? (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => {
+                                  const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                  const nextAmount = Math.max(1, currentAmount - 10);
+                                  onUpdateEntry(entry.id, {
+                                    ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: nextAmount }],
+                                  });
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-[10px] font-medium text-center min-w-[42px]">{entry.ingredients[0]?.amount || 0} g</span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => {
+                                  const currentAmount = Number(entry.ingredients[0]?.amount) || 0;
+                                  onUpdateEntry(entry.id, {
+                                    ingredients: [{ ingredientId: entry.ingredients[0].ingredientId, amount: currentAmount + 10 }],
+                                  });
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => onUpdateEntry(entry.id, { servings: Math.max(0.5, (Number(entry.servings) || 1) - 0.5) })}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-[10px] font-medium text-center">{entry.recipe ? (<>{Number(entry.servings) || 1}/{Number(entry.recipe.servings) || 1}</>) : (Number(entry.servings) || 1)}</span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5"
+                                onClick={() => onUpdateEntry(entry.id, { servings: (Number(entry.servings) || 1) + 0.5 })}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                       
