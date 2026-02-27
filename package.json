@@ -5,10 +5,11 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && tsx script/build.ts",
+    "build": "npm run check:conflicts && vite build && tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "check:conflicts": "bash -lc '! rg -n \"^(<<<<<<<|=======|>>>>>>>)\" client server shared'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
