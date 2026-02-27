@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
   const [viewingMeal, setViewingMeal] = useState<any>(null);
   const [viewingPlannedServings, setViewingPlannedServings] = useState<number | undefined>(undefined);
+  const [viewingPlannedServings, setViewingPlannedServings] = useState<number | undefined>(undefined);
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
@@ -214,6 +215,18 @@ export default function Dashboard() {
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
+          <div className="flex items-center gap-2 mb-2">
+            {(["A", "B"] as const).map((person) => (
+              <Button
+                key={person}
+                size="sm"
+                variant={activePersonView === person ? "default" : "outline"}
+                onClick={() => setActivePersonView(person)}
+              >
+                Osoba {person}
+              </Button>
+            ))}
+          </div>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
               {isToday ? "Podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
@@ -304,6 +317,7 @@ export default function Dashboard() {
         <NutritionRing current={consumed.protein} target={targets.targetProtein} label="Białko" color="#3b82f6" unit="g" />
         <NutritionRing current={consumed.carbs} target={targets.targetCarbs} label="Węgle" color="#f59e0b" unit="g" />
         <NutritionRing current={consumed.fat} target={targets.targetFat} label="Tłuszcze" color="#ef4444" unit="g" />
+
       </div>
 
       <RecipeView 
@@ -376,6 +390,8 @@ export default function Dashboard() {
                               {meal.recipe && (
                                 <button 
                                   onClick={() => openRecipePreview(meal)}
+                                  onClick={() => openRecipePreview(meal)}
+
                                   className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-secondary transition-colors"
                                   title="Pokaż przepis"
                                 >
