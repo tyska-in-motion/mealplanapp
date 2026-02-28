@@ -250,6 +250,11 @@ export class DatabaseStorage implements IStorage {
               with: {
                 ingredient: true
               }
+            },
+            frequentAddons: {
+              with: {
+                ingredient: true
+              }
             }
           }
         },
@@ -270,6 +275,11 @@ export class DatabaseStorage implements IStorage {
         recipe: {
           with: {
             ingredients: {
+              with: {
+                ingredient: true
+              }
+            },
+            frequentAddons: {
               with: {
                 ingredient: true
               }
@@ -348,6 +358,11 @@ export class DatabaseStorage implements IStorage {
         recipe: {
           with: {
             ingredients: {
+              with: {
+                ingredient: true
+              }
+            },
+            frequentAddons: {
               with: {
                 ingredient: true
               }

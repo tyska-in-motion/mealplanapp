@@ -68,6 +68,11 @@ export default function MealPlan() {
   const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
   const [ingredientAmount, setIngredientAmount] = useState(100);
 
+  const frequentAddonDefinitions = viewingRecipe?.frequentAddons || [];
+  const frequentAddonIngredientIds = useMemo(() => new Set(
+    frequentAddonDefinitions.map((addon: any) => addon.ingredientId)
+  ), [frequentAddonDefinitions]);
+
   const startEditing = () => {
     if (!viewingRecipe || !viewingMeal) return;
 
@@ -82,7 +87,8 @@ export default function MealPlan() {
     setEditingMealIngredients(currentIngredients.map((ri: any) => ({
       ingredientId: ri.ingredientId,
       amount: Math.round(ri.amount * factor),
-      ingredient: ri.ingredient
+      ingredient: ri.ingredient,
+      isFrequentAddon: frequentAddonIngredientIds.has(ri.ingredientId),
     })));
     setIsEditingIngredients(true);
   };
@@ -91,11 +97,36 @@ export default function MealPlan() {
     setEditingMealIngredients([...editingMealIngredients, { ingredientId: 0, amount: 100, ingredient: null }]);
   };
 
+  const addFrequentAddonToEdit = (addon: any) => {
+    const addonIngredientId = Number(addon.ingredientId);
+    const addonStep = Number(addon.amount) || 0;
+    if (!addonIngredientId || addonStep <= 0) return;
+
+    setEditingMealIngredients((prev) => {
+      const existingIndex = prev.findIndex((item: any) => Number(item.ingredientId) === addonIngredientId);
+      if (existingIndex >= 0) {
+        return prev.map((item: any, idx: number) =>
+          idx === existingIndex
+            ? { ...item, amount: Number(item.amount || 0) + addonStep, isFrequentAddon: true }
+            : item
+        );
+      }
+
+      return [...prev, {
+        ingredientId: addonIngredientId,
+        amount: addonStep,
+        ingredient: addon.ingredient || null,
+        isFrequentAddon: true,
+      }];
+    });
+  };
+
   const updateIngredientInEdit = (index: number, updates: any) => {
     const newIngredients = [...editingMealIngredients];
     newIngredients[index] = { ...newIngredients[index], ...updates };
     if (updates.ingredientId && allAvailableIngredients) {
       newIngredients[index].ingredient = allAvailableIngredients.find((i: any) => i.id === updates.ingredientId);
+      newIngredients[index].isFrequentAddon = frequentAddonIngredientIds.has(Number(updates.ingredientId));
     }
     setEditingMealIngredients(newIngredients);
   };
@@ -414,6 +445,7 @@ export default function MealPlan() {
         }}
         plannedServings={viewingServings}
         mealEntryIngredients={viewingMeal?.ingredients}
+        frequentAddonIds={viewingRecipe?.frequentAddons?.map((addon: any) => addon.ingredientId) || []}
         onEditIngredients={viewingMeal ? startEditing : undefined}
         showFooter={!viewingMeal}
         onAddToPlan={(recipe) => {
@@ -430,8 +462,37 @@ export default function MealPlan() {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto py-4 space-y-4">
+            {frequentAddonDefinitions.length > 0 && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Najczęstsze dodatki (opcjonalnie)</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {frequentAddonDefinitions.map((addon: any) => {
+                    const isAlreadyAdded = editingMealIngredients.some((item: any) => Number(item.ingredientId) === Number(addon.ingredientId));
+                    return (
+                      <Button
+                        key={`edit-addon-${addon.ingredientId}`}
+                        type="button"
+                        size="sm"
+                        variant={isAlreadyAdded ? "secondary" : "outline"}
+                        className={cn("h-8", isAlreadyAdded && "border-emerald-300 bg-emerald-100 text-emerald-900")}
+                        onClick={() => addFrequentAddonToEdit(addon)}
+                      >
+                        + {Math.round(Number(addon.amount) || 0)}g {addon.ingredient?.name || "Składnik"}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {editingMealIngredients.map((item, idx) => (
-              <div key={idx} className="flex gap-2 items-start bg-secondary/20 p-3 rounded-xl">
+              <div
+                key={idx}
+                className={cn(
+                  "flex gap-2 items-start bg-secondary/20 p-3 rounded-xl border border-transparent",
+                  item.isFrequentAddon && "border-emerald-300 bg-emerald-50/50"
+                )}
+              >
                 <div className="flex-1">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -472,6 +533,11 @@ export default function MealPlan() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {item.isFrequentAddon && (
+                    <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                      Najczęstszy dodatek
+                    </span>
+                  )}
                 </div>
                 
                 <div className="w-32">
