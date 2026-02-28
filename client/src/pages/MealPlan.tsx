@@ -550,7 +550,7 @@ export default function MealPlan() {
       <Dialog open={isIngredientOpen} onOpenChange={setIsIngredientOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dodaj składnik do posiłku • Osoba {selectedPerson}</DialogTitle>
+            <DialogTitle>Dodaj składnik do posiłku</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
@@ -644,20 +644,10 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
     };
   };
 
-  const personEntries = useMemo(() => ({
-    A: dayPlan?.entries.filter((e: any) => (e.person || "A") === "A") || [],
-    B: dayPlan?.entries.filter((e: any) => (e.person || "A") === "B") || [],
-  }), [dayPlan]);
-
-  const personSummary = useMemo(() => ({
-    A: calculateSummary(personEntries.A),
-    B: calculateSummary(personEntries.B),
-  }), [personEntries]);
+  const daySummary = useMemo(() => calculateSummary(dayPlan?.entries || []), [dayPlan]);
 
   const people = ["A", "B"] as const;
   const personName: Record<"A" | "B", string> = { A: "Tysia", B: "Mati" };
-  // Legacy compatibility alias for old merged references still using activePersonView.
-  const activePersonView = "A" as const;
 
   return (
     <div className={cn("space-y-6", isToday && "bg-primary/5 -mx-4 px-4 py-8 rounded-3xl border border-primary/10")}>
@@ -669,33 +659,29 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
         </div>
 
         {dayPlan && (
-          <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {people.map((person) => (
-              <div key={person} className="rounded-2xl border border-border/60 bg-white/60 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">{personName[person]}</span>
-                  <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
-                    <span className="text-sm font-bold text-primary">{personSummary[person].calories}</span>
-                  </div>
-                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
-                    <span className="text-sm font-bold text-blue-600">{personSummary[person].protein}g</span>
-                  </div>
-                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
-                    <span className="text-sm font-bold text-amber-600">{personSummary[person].carbs}g</span>
-                  </div>
-                  <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
-                    <span className="text-sm font-bold text-rose-600">{personSummary[person].fat}g</span>
-                  </div>
-                </div>
+          <div className="w-full rounded-2xl border border-border/60 bg-white/60 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold">Podsumowanie dnia</span>
+              <span className="text-xs text-muted-foreground">Wspólny koszt dnia: {dayPlan.totalPrice} PLN</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[70px]">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">kcal</span>
+                <span className="text-sm font-bold text-primary">{daySummary.calories}</span>
               </div>
-            ))}
+              <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">P</span>
+                <span className="text-sm font-bold text-blue-600">{daySummary.protein}g</span>
+              </div>
+              <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">C</span>
+                <span className="text-sm font-bold text-amber-600">{daySummary.carbs}g</span>
+              </div>
+              <div className="flex flex-col items-center bg-white px-3 py-1 rounded-xl border border-border shadow-sm min-w-[60px]">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">F</span>
+                <span className="text-sm font-bold text-rose-600">{daySummary.fat}g</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
