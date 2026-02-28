@@ -45,7 +45,13 @@ const createRecipeSchema = z.object({
     ingredientId: z.coerce.number(),
     amount: z.coerce.number().min(1),
   })).min(1, "Add at least one ingredient"),
+  frequentAddons: z.array(z.object({
+    ingredientId: z.coerce.number(),
+    amount: z.coerce.number().min(1),
+  })).optional().default([]),
 });
+
+type RecipeFormData = z.infer<typeof createRecipeSchema>;
 
 import { RecipeView } from "@/components/RecipeView";
 
@@ -97,6 +103,7 @@ export default function Recipes() {
   const [recipeToPlan, setRecipeToPlan] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [selectedMealType, setSelectedMealType] = useState("lunch");
+  const [selectedFrequentAddons, setSelectedFrequentAddons] = useState<number[]>([]);
 
   const { data: dayPlan } = useDayPlan(selectedDate);
   const { mutate: addEntry, isPending: isAddingToPlan } = useAddMealEntry();
@@ -115,6 +122,10 @@ export default function Recipes() {
       return;
     }
 
+    const selectedAddons = (recipeToPlan?.frequentAddons || []).filter((addon: any) =>
+      selectedFrequentAddons.includes(addon.ingredientId)
+    );
+
     const addForPerson = (person: "A" | "B") =>
       new Promise<void>((resolve, reject) => {
         addEntry({
@@ -125,7 +136,41 @@ export default function Recipes() {
           isEaten: false,
           servings: 1
         }, {
-          onSuccess: () => resolve(),
+          onSuccess: async (createdEntry: any) => {
+            try {
+              if (selectedAddons.length > 0) {
+                const baseIngredients = (recipeToPlan.ingredients || []).map((ri: any) => ({
+                  ingredientId: ri.ingredientId,
+                  amount: Number(ri.amount) || 0,
+                }));
+
+                const mergedIngredients = [...baseIngredients];
+                selectedAddons.forEach((addon: any) => {
+                  const existing = mergedIngredients.find((i) => i.ingredientId === addon.ingredientId);
+                  if (existing) {
+                    existing.amount += Number(addon.amount) || 0;
+                  } else {
+                    mergedIngredients.push({
+                      ingredientId: addon.ingredientId,
+                      amount: Number(addon.amount) || 0,
+                    });
+                  }
+                });
+
+                await updateMealEntry.mutateAsync({
+                  id: createdEntry.id,
+                  data: {
+                    ingredients: mergedIngredients,
+                    servings: 1,
+                  },
+                });
+              }
+
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
           onError: (err: any) => reject(err),
         });
       });
@@ -133,6 +178,8 @@ export default function Recipes() {
     Promise.all([addForPerson("A"), addForPerson("B")])
       .then(() => {
         setIsAddToPlanOpen(false);
+        setRecipeToPlan(null);
+        setSelectedFrequentAddons([]);
         toast({ title: "Sukces", description: "Przepis dodany do planu dla Osoby A i B." });
       })
       .catch((err: any) => {
@@ -151,7 +198,7 @@ export default function Recipes() {
   // Form setup
   const { data: availableIngredients } = useIngredients();
 
-  const form = useForm({
+  const form = useForm<RecipeFormData>({
     resolver: zodResolver(createRecipeSchema),
     defaultValues: {
       name: "",
@@ -162,6 +209,7 @@ export default function Recipes() {
       servings: 1,
       imageUrl: "",
       ingredients: [{ ingredientId: 0, amount: 100 }],
+      frequentAddons: [] as { ingredientId: number; amount: number }[],
     },
   });
 
@@ -170,12 +218,21 @@ export default function Recipes() {
     name: "ingredients",
   });
 
+  const {
+    fields: frequentAddonFields,
+    append: appendFrequentAddon,
+    remove: removeFrequentAddon,
+  } = useFieldArray({
+    control: form.control,
+    name: "frequentAddons" as const,
+  });
+
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
-  const { mutate: updateMealEntry } = useMutation({
+  const updateMealEntry = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
       const res = await apiRequest("PATCH", `/api/meal-plan/entry/${id}`, data);
       return res.json();
@@ -201,6 +258,10 @@ export default function Recipes() {
         ingredientId: ri.ingredientId,
         amount: ri.amount,
       })),
+      frequentAddons: (recipe.frequentAddons || []).map((addon: any) => ({
+        ingredientId: addon.ingredientId,
+        amount: addon.amount,
+      })),
     });
     setIsOpen(true);
   };
@@ -217,6 +278,7 @@ export default function Recipes() {
       servings: 1,
       imageUrl: "",
       ingredients: [{ ingredientId: 0, amount: 100 }],
+      frequentAddons: [],
     });
   };
 
@@ -417,6 +479,79 @@ export default function Recipes() {
               </div>
 
               <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-medium">Najczęste dodatki (opcjonalnie)</label>
+                </div>
+                <div className="space-y-3 mb-3">
+                  {frequentAddonFields.map((field, index) => {
+                    const selectedId = Number(form.watch(`frequentAddons.${index}.ingredientId`));
+                    return (
+                      <div key={field.id} className="flex gap-2 items-end bg-emerald-50/60 p-2 rounded-xl border border-emerald-100">
+                        <div className="flex-1">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between h-9 rounded-lg bg-background font-normal",
+                                  !selectedId && "text-muted-foreground"
+                                )}
+                              >
+                                {selectedId
+                                  ? (availableIngredients || []).find((i: any) => i.id === selectedId)?.name
+                                  : "Wybierz dodatek"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0 bg-white border border-border shadow-md" align="start">
+                              <Command>
+                                <CommandInput placeholder="Szukaj składnika..." />
+                                <CommandList>
+                                  <CommandEmpty>Nie znaleziono składnika.</CommandEmpty>
+                                  <CommandGroup>
+                                    {(availableIngredients || []).map((i: any) => (
+                                      <CommandItem
+                                        key={i.id}
+                                        value={i.name}
+                                        onSelect={() => {
+                                          form.setValue(`frequentAddons.${index}.ingredientId`, i.id);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedId === i.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        <div className="flex flex-col">
+                                          <span>{i.name}</span>
+                                          <span className="text-[10px] text-muted-foreground">{i.calories} kcal</span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="w-24">
+                          <Input type="number" placeholder="g" className="h-9 rounded-lg" {...form.register(`frequentAddons.${index}.amount` as const)} />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-red-50 hover:text-red-500" onClick={() => removeFrequentAddon(index)}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button type="button" variant="outline" size="sm" className="rounded-lg border-dashed w-full py-5 border-2 hover:bg-emerald-50 hover:border-emerald-300 transition-all" onClick={() => appendFrequentAddon({ ingredientId: 0, amount: 50 })}>
+                  + Dodaj najczęsty dodatek
+                </Button>
+              </div>
+
+              <div>
                 <label className="text-sm font-medium mb-1 block">Instrukcje</label>
                 <textarea 
                   {...form.register("instructions")} 
@@ -489,9 +624,10 @@ export default function Recipes() {
               {/* Healthy green salad */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 gap-2">
                  <button 
-                  onClick={(e) => { 
+                 onClick={(e) => { 
                     e.preventDefault(); 
                     setRecipeToPlan(recipe);
+                    setSelectedFrequentAddons([]);
                     setIsAddToPlanOpen(true);
                   }}
                   className="bg-white/80 p-2 rounded-full text-primary hover:bg-white transition-colors"
@@ -617,7 +753,15 @@ export default function Recipes() {
         }}
       />
 
-      <Dialog open={isAddToPlanOpen} onOpenChange={setIsAddToPlanOpen}>
+      <Dialog
+        open={isAddToPlanOpen}
+        onOpenChange={(open) => {
+          setIsAddToPlanOpen(open);
+          if (!open) {
+            setSelectedFrequentAddons([]);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Dodaj do planu: {recipeToPlan?.name}</DialogTitle>
@@ -652,6 +796,30 @@ export default function Recipes() {
                 </SelectContent>
               </Select>
             </div>
+            {(recipeToPlan?.frequentAddons || []).length > 0 && (
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Sugerowane dodatki</label>
+                <div className="space-y-2 rounded-xl border border-border/60 bg-secondary/20 p-3">
+                  {(recipeToPlan.frequentAddons || []).map((addon: any) => (
+                    <label key={addon.ingredientId} className="flex items-center justify-between gap-3 text-sm">
+                      <span>{addon.ingredient?.name || "Składnik"}</span>
+                      <span className="text-muted-foreground mr-auto">+{addon.amount} g</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedFrequentAddons.includes(addon.ingredientId)}
+                        onChange={(e) => {
+                          setSelectedFrequentAddons((prev) =>
+                            e.target.checked
+                              ? [...prev, addon.ingredientId]
+                              : prev.filter((id) => id !== addon.ingredientId)
+                          );
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsAddToPlanOpen(false)}>Anuluj</Button>
