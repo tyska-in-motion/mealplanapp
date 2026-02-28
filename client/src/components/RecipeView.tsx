@@ -120,7 +120,7 @@ export function RecipeView({
                         {Math.round(ri.amount * ingredientsFactor)}g
                       </span>
                     </div>
-                    {ri.ingredient?.unitWeight && (
+                    {Number(ri.ingredient?.unitWeight || 0) > 0 && (
                       <span className="text-[10px] text-muted-foreground italic">
                         ({ri.ingredient.unitDescription ? `${ri.ingredient.unitDescription} - ` : ""}1 sztuka to ok. {ri.ingredient.unitWeight}g)
                       </span>
