@@ -11,6 +11,7 @@ interface RecipeViewProps {
   onEditIngredients?: () => void;
   showFooter?: boolean;
   mealEntryIngredients?: any[];
+  frequentAddonIds?: number[];
 }
 
 export function RecipeView({ 
@@ -21,7 +22,8 @@ export function RecipeView({
   plannedServings, 
   onEditIngredients,
   showFooter = true,
-  mealEntryIngredients
+  mealEntryIngredients,
+  frequentAddonIds = [],
 }: RecipeViewProps) {
   if (!recipe) return null;
 
@@ -35,6 +37,7 @@ export function RecipeView({
     : recipe.ingredients;
 
   const factor = servingsToUse / recipeServings;
+  const frequentAddonSet = new Set((frequentAddonIds || []).map((id) => Number(id)));
   const macrosFactor = isPlannedView ? factor : (1 / recipeServings);
   const ingredientsFactor = isPlannedView ? factor : 1;
 
@@ -112,10 +115,23 @@ export function RecipeView({
                 )}
               </div>
               <ul className="space-y-2">
-                {baseIngredients.map((ri: any, idx: number) => (
-                  <li key={idx} className="flex flex-col p-2 rounded-lg bg-secondary/50">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold">{ri.ingredient?.name}</span>
+                {baseIngredients.map((ri: any, idx: number) => {
+                  const isFrequentAddon = frequentAddonSet.has(Number(ri.ingredientId));
+
+                  return (
+                  <li
+                    key={idx}
+                    className={`flex flex-col p-2 rounded-lg border ${isFrequentAddon ? "border-emerald-300 bg-emerald-50/70" : "border-transparent bg-secondary/50"}`}
+                  >
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-semibold">
+                        {ri.ingredient?.name}
+                        {isFrequentAddon && (
+                          <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                            Dodatek
+                          </span>
+                        )}
+                      </span>
                       <span className="font-medium">
                         {Math.round(ri.amount * ingredientsFactor)}g
                       </span>
@@ -126,7 +142,8 @@ export function RecipeView({
                       </span>
                     )}
                   </li>
-                ))}
+                );
+                })}
               </ul>
             </div>
             <div>
