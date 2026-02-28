@@ -386,10 +386,12 @@ export default function Dashboard() {
                               )}>
                                 {meal.recipe?.name || meal.customName}
                               </p>
-                              <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{personName[meal.person || activePersonView]}</span>
                               {meal.recipe && (
                                 <button 
-                                  onClick={() => openRecipePreview(meal)}
+                                  onClick={() => {
+                                    setViewingRecipe(meal.recipe);
+                                    setViewingMeal(meal);
+                                  }}
                                   className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-secondary transition-colors"
                                   title="Pokaż przepis"
                                 >
@@ -400,11 +402,11 @@ export default function Dashboard() {
                             <div className="flex items-center gap-2 mt-0.5">
                               {meal.recipe ? (
                                 <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                  {(Number(meal.servings) || 1)}/{(Number(meal.recipe?.servings) || 1)} porcji
+                                  {personName[meal.person || "A"]}: {(Number(meal.servings) || 1)}/{(Number(meal.recipe?.servings) || 1)} porcji
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-bold text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
-                                  x{Number(meal.servings) || 1}
+                                  {personName[meal.person || "A"]}: x{Number(meal.servings) || 1}
                                 </span>
                               )}
                             </div>
