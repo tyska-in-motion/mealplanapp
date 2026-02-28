@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, UtensilsCrossed, CalendarDays, ShoppingCart, Leaf } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, CalendarDays, ShoppingCart, Leaf, ChartColumnBig } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -9,6 +9,7 @@ export function Navigation() {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/meal-plan", label: "Meal Plan", icon: CalendarDays },
     { href: "/recipes", label: "Recipes", icon: UtensilsCrossed },
+    { href: "/summary", label: "Summary", icon: ChartColumnBig },
     { href: "/ingredients", label: "Ingredients", icon: Leaf },
     { href: "/shopping-list", label: "Shopping", icon: ShoppingCart },
   ];
