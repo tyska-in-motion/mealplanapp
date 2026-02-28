@@ -53,8 +53,8 @@ export default function MealPlan() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
-  // Legacy compatibility alias for old merged references still using activePersonView.
-  const activePersonView = selectedPerson;
+  const [selectedRecipeToAdd, setSelectedRecipeToAdd] = useState<any>(null);
+  const [selectedFrequentAddons, setSelectedFrequentAddons] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -164,6 +164,8 @@ export default function MealPlan() {
     setSearchQuery("");
     setSelectedTag(null);
     setSelectedPerson(person);
+    setSelectedRecipeToAdd(null);
+    setSelectedFrequentAddons([]);
     setIsAddOpen(true);
   };
 
@@ -184,8 +186,20 @@ export default function MealPlan() {
     setIsIngredientOpen(true);
   };
 
-  const handleAdd = (recipeId: number) => {
+  const closeAddDialog = () => {
+    setIsAddOpen(false);
+    setSelectedMealType(null);
+    setSelectedDateStr(null);
+    setSelectedRecipeToAdd(null);
+    setSelectedFrequentAddons([]);
+  };
+
+  const handleAdd = (recipeId: number, recipe?: any) => {
     if (!selectedMealType || !selectedDateStr) return;
+
+    const selectedAddons = (recipe?.frequentAddons || []).filter((addon: any) =>
+      selectedFrequentAddons.includes(addon.ingredientId)
+    );
     
     addEntry({
       date: selectedDateStr,
@@ -194,10 +208,38 @@ export default function MealPlan() {
       person: selectedPerson,
       isEaten: false,
     }, {
-      onSuccess: () => {
-        setIsAddOpen(false);
-        setSelectedMealType(null);
-        setSelectedDateStr(null);
+      onSuccess: (entry) => {
+        if (!recipe || selectedAddons.length === 0) {
+          closeAddDialog();
+          return;
+        }
+
+        const mergedIngredients = (recipe.ingredients || []).map((ri: any) => ({
+          ingredientId: ri.ingredientId,
+          amount: Number(ri.amount) || 0,
+        }));
+
+        selectedAddons.forEach((addon: any) => {
+          const existing = mergedIngredients.find((item: any) => item.ingredientId === addon.ingredientId);
+          if (existing) {
+            existing.amount += Number(addon.amount) || 0;
+          } else {
+            mergedIngredients.push({
+              ingredientId: addon.ingredientId,
+              amount: Number(addon.amount) || 0,
+            });
+          }
+        });
+
+        updateMealEntry({
+          id: entry.id,
+          updates: {
+            ingredients: mergedIngredients,
+            servings: 1,
+          },
+        }, {
+          onSuccess: closeAddDialog,
+        });
       }
     });
   };
@@ -290,21 +332,6 @@ export default function MealPlan() {
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
-      </div>
-
-
-      <div className="flex items-center gap-2 mb-6">
-        <span className="text-sm text-muted-foreground">Widok osoby:</span>
-        {(["A", "B"] as const).map((person) => (
-          <Button
-            key={person}
-            size="sm"
-            variant={activePersonView === person ? "default" : "outline"}
-            onClick={() => setActivePersonView(person)}
-          >
-            Osoba {person}
-          </Button>
-        ))}
       </div>
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
@@ -437,7 +464,16 @@ export default function MealPlan() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeAddDialog();
+            return;
+          }
+          setIsAddOpen(true);
+        }}
+      >
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Dodaj do posiłku: {
@@ -487,7 +523,10 @@ export default function MealPlan() {
                 filteredRecipes.map((recipe: any) => (
                   <button
                     key={recipe.id}
-                    onClick={() => handleAdd(recipe.id)}
+                    onClick={() => {
+                      setSelectedRecipeToAdd(recipe);
+                      setSelectedFrequentAddons([]);
+                    }}
                     className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary transition-colors text-left border border-transparent hover:border-border"
                   >
                     <div className="w-12 h-12 rounded-lg bg-cover bg-center bg-muted flex-shrink-0" style={{ backgroundImage: `url(${recipe.imageUrl})` }} />
@@ -510,6 +549,42 @@ export default function MealPlan() {
                 </div>
               )}
             </div>
+
+            {selectedRecipeToAdd && (
+              <div className="space-y-3 rounded-xl border border-border/70 bg-secondary/20 p-3">
+                <p className="text-sm font-semibold">Wybrany przepis: {selectedRecipeToAdd.name}</p>
+
+                {(selectedRecipeToAdd.frequentAddons || []).length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Opcjonalne dodatki:</p>
+                    {(selectedRecipeToAdd.frequentAddons || []).map((addon: any) => (
+                      <label key={addon.ingredientId} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedFrequentAddons.includes(addon.ingredientId)}
+                          onChange={(e) => {
+                            setSelectedFrequentAddons((prev) =>
+                              e.target.checked
+                                ? [...prev, addon.ingredientId]
+                                : prev.filter((id) => id !== addon.ingredientId)
+                            );
+                          }}
+                        />
+                        <span>{addon.ingredient?.name || "Składnik"}</span>
+                        <span className="text-muted-foreground">+{addon.amount} g</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button variant="ghost" onClick={closeAddDialog}>Anuluj</Button>
+                  <Button onClick={() => handleAdd(selectedRecipeToAdd.id, selectedRecipeToAdd)}>
+                    Dodaj do planu
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

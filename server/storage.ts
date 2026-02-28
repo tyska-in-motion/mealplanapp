@@ -4,6 +4,7 @@ import {
   ingredients,
   recipes,
   recipeIngredients,
+  recipeFrequentAddons,
   mealEntries,
   userSettings,
   shoppingListChecks,
@@ -31,8 +32,8 @@ export interface IStorage {
   // Recipes
   getRecipes(search?: string, ingredientId?: number): Promise<RecipeWithIngredients[]>;
   getRecipe(id: number): Promise<RecipeWithIngredients | undefined>;
-  createRecipe(recipe: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients>;
-  updateRecipe(id: number, recipe: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients>;
+  createRecipe(recipe: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[]; frequentAddons?: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients>;
+  updateRecipe(id: number, recipe: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[]; frequentAddons?: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients>;
   deleteRecipe(id: number): Promise<void>;
 
   // Meal Plan
@@ -112,6 +113,11 @@ export class DatabaseStorage implements IStorage {
           with: {
             ingredient: true
           }
+        },
+        frequentAddons: {
+          with: {
+            ingredient: true
+          }
         }
       }
     });
@@ -143,13 +149,18 @@ export class DatabaseStorage implements IStorage {
           with: {
             ingredient: true
           }
+        },
+        frequentAddons: {
+          with: {
+            ingredient: true
+          }
         }
       }
     });
     return recipe as RecipeWithIngredients | undefined;
   }
 
-  async createRecipe(req: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients> {
+  async createRecipe(req: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[]; frequentAddons?: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients> {
     const [recipe] = await db.insert(recipes).values({
       name: req.name,
       tags: req.tags,
@@ -170,10 +181,20 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    if (req.frequentAddons && req.frequentAddons.length > 0) {
+      await db.insert(recipeFrequentAddons).values(
+        req.frequentAddons.map((i) => ({
+          recipeId: recipe.id,
+          ingredientId: i.ingredientId,
+          amount: i.amount,
+        }))
+      );
+    }
+
     return this.getRecipe(recipe.id) as Promise<RecipeWithIngredients>;
   }
 
-  async updateRecipe(id: number, req: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients> {
+  async updateRecipe(id: number, req: CreateRecipeRequest & { ingredients: { ingredientId: number; amount: number }[]; frequentAddons?: { ingredientId: number; amount: number }[] }): Promise<RecipeWithIngredients> {
     await db.update(recipes)
       .set({
         name: req.name,
@@ -187,6 +208,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(recipes.id, id));
 
     await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, id));
+    await db.delete(recipeFrequentAddons).where(eq(recipeFrequentAddons.recipeId, id));
 
     if (req.ingredients.length > 0) {
       await db.insert(recipeIngredients).values(
@@ -198,11 +220,22 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    if (req.frequentAddons && req.frequentAddons.length > 0) {
+      await db.insert(recipeFrequentAddons).values(
+        req.frequentAddons.map((i) => ({
+          recipeId: id,
+          ingredientId: i.ingredientId,
+          amount: i.amount,
+        }))
+      );
+    }
+
     return this.getRecipe(id) as Promise<RecipeWithIngredients>;
   }
 
   async deleteRecipe(id: number): Promise<void> {
     await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, id));
+    await db.delete(recipeFrequentAddons).where(eq(recipeFrequentAddons.recipeId, id));
     await db.delete(mealEntries).where(eq(mealEntries.recipeId, id));
     await db.delete(recipes).where(eq(recipes.id, id));
   }

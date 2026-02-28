@@ -168,7 +168,11 @@ export async function registerRoutes(
         ingredients: z.array(z.object({
           ingredientId: z.number(),
           amount: z.number()
-        }))
+        })),
+        frequentAddons: z.array(z.object({
+          ingredientId: z.number(),
+          amount: z.number(),
+        })).optional().default([]),
       }).parse(req.body);
       
       const item = await storage.createRecipe(input);
@@ -195,7 +199,11 @@ export async function registerRoutes(
         ingredients: z.array(z.object({
           ingredientId: z.number(),
           amount: z.number()
-        }))
+        })),
+        frequentAddons: z.array(z.object({
+          ingredientId: z.number(),
+          amount: z.number(),
+        })).optional().default([]),
       }).parse(req.body);
       
       const item = await storage.updateRecipe(id, input);
