@@ -92,6 +92,10 @@ export const api = {
           ingredientId: z.number(),
           amount: z.number(),
         })),
+        frequentAddons: z.array(z.object({
+          ingredientId: z.number(),
+          amount: z.number(),
+        })).optional().default([]),
       }),
       responses: {
         201: z.custom<any>(),
@@ -123,6 +127,10 @@ export const api = {
           ingredientId: z.number(),
           amount: z.number(),
         })),
+        frequentAddons: z.array(z.object({
+          ingredientId: z.number(),
+          amount: z.number(),
+        })).optional().default([]),
       }),
       responses: {
         200: z.custom<any>(),
