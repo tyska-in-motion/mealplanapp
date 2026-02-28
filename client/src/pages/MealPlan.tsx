@@ -292,6 +292,20 @@ export default function MealPlan() {
         </div>
       </div>
 
+
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-muted-foreground">Widok osoby:</span>
+        {(["A", "B"] as const).map((person) => (
+          <Button
+            key={person}
+            size="sm"
+            variant={activePersonView === person ? "default" : "outline"}
+            onClick={() => setActivePersonView(person)}
+          >
+            Osoba {person}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
           <DaySection 
@@ -430,7 +444,7 @@ export default function MealPlan() {
               selectedMealType === "breakfast" ? "Śniadanie" : 
               selectedMealType === "lunch" ? "Obiad" : 
               selectedMealType === "dinner" ? "Kolacja" : "Przekąska"
-            } ({selectedDateStr})</DialogTitle>
+            } ({selectedDateStr}) • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -503,7 +517,7 @@ export default function MealPlan() {
       <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Dodaj własny produkt</DialogTitle>
+            <DialogTitle>Dodaj własny produkt • Osoba {selectedPerson}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCustom} className="grid gap-4 mt-4">
             <div className="grid gap-2">
