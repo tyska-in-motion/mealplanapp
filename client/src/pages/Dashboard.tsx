@@ -130,8 +130,6 @@ export default function Dashboard() {
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
   const allEntries = dayPlan?.entries || [];
-  // Legacy fallback for older merged fragments that still reference activePersonView.
-  const activePersonView = "A" as const;
   const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
@@ -193,18 +191,6 @@ export default function Dashboard() {
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
-          <div className="flex items-center gap-2 mb-2">
-            {(["A", "B"] as const).map((person) => (
-              <Button
-                key={person}
-                size="sm"
-                variant={activePersonView === person ? "default" : "outline"}
-                onClick={() => setActivePersonView(person)}
-              >
-                Osoba {person}
-              </Button>
-            ))}
-          </div>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
               {isToday ? "Podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>

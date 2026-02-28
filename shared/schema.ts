@@ -48,6 +48,13 @@ export const recipeIngredients = pgTable("recipe_ingredients", {
   amount: integer("amount").notNull(), // Amount in default unit
 });
 
+export const recipeFrequentAddons = pgTable("recipe_frequent_addons", {
+  id: serial("id").primaryKey(),
+  recipeId: integer("recipe_id").notNull(),
+  ingredientId: integer("ingredient_id").notNull(),
+  amount: integer("amount").notNull(), // Suggested add-on amount in grams
+});
+
 export const mealEntries = pgTable("meal_entries", {
   id: serial("id").primaryKey(),
   date: text("date").notNull(), // YYYY-MM-DD
@@ -75,11 +82,13 @@ export const mealEntryIngredients = pgTable("meal_entry_ingredients", {
 
 export const recipesRelations = relations(recipes, ({ many }) => ({
   ingredients: many(recipeIngredients),
+  frequentAddons: many(recipeFrequentAddons),
   mealEntries: many(mealEntries),
 }));
 
 export const ingredientsRelations = relations(ingredients, ({ many }) => ({
   inRecipes: many(recipeIngredients),
+  inRecipeFrequentAddons: many(recipeFrequentAddons),
   inMealEntries: many(mealEntryIngredients),
 }));
 
@@ -90,6 +99,17 @@ export const recipeIngredientsRelations = relations(recipeIngredients, ({ one })
   }),
   ingredient: one(ingredients, {
     fields: [recipeIngredients.ingredientId],
+    references: [ingredients.id],
+  }),
+}));
+
+export const recipeFrequentAddonsRelations = relations(recipeFrequentAddons, ({ one }) => ({
+  recipe: one(recipes, {
+    fields: [recipeFrequentAddons.recipeId],
+    references: [recipes.id],
+  }),
+  ingredient: one(ingredients, {
+    fields: [recipeFrequentAddons.ingredientId],
     references: [ingredients.id],
   }),
 }));
@@ -124,12 +144,14 @@ export const shoppingListChecks = pgTable("shopping_list_checks", {
 export const insertIngredientSchema = createInsertSchema(ingredients).omit({ id: true });
 export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true, createdAt: true });
 export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients).omit({ id: true });
+export const insertRecipeFrequentAddonSchema = createInsertSchema(recipeFrequentAddons).omit({ id: true });
 export const insertMealEntrySchema = createInsertSchema(mealEntries).omit({ id: true, createdAt: true });
 export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ id: true });
 
 export type Ingredient = typeof ingredients.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
 export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
+export type RecipeFrequentAddon = typeof recipeFrequentAddons.$inferSelect;
 export type MealEntry = typeof mealEntries.$inferSelect;
 export type UserSettings = typeof userSettings.$inferSelect;
 
@@ -140,6 +162,7 @@ export type CreateMealEntryRequest = z.infer<typeof insertMealEntrySchema>;
 // Extended types for frontend
 export type RecipeWithIngredients = Recipe & {
   ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
+  frequentAddons: (RecipeFrequentAddon & { ingredient: Ingredient })[];
 };
 
 export type MealEntryWithRecipe = MealEntry & {
