@@ -130,6 +130,8 @@ export default function Dashboard() {
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
   const allEntries = dayPlan?.entries || [];
+  // Legacy fallback for older merged fragments that still reference activePersonView.
+  const activePersonView = "A" as const;
   const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
@@ -178,7 +180,7 @@ export default function Dashboard() {
     if (!meal?.recipe) return Number(meal?.servings) || 1;
 
     const ownServings = Number(meal.servings) || 1;
-    const person = meal.person || "A";
+    const person = meal.person || activePersonView;
     const otherPerson = person === "A" ? "B" : "A";
 
     const pair = allEntries.find((entry: any) =>
@@ -384,7 +386,7 @@ export default function Dashboard() {
                               )}>
                                 {meal.recipe?.name || meal.customName}
                               </p>
-                              <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{personName[meal.person || "A"]}</span>
+                              <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground">{personName[meal.person || activePersonView]}</span>
                               {meal.recipe && (
                                 <button 
                                   onClick={() => openRecipePreview(meal)}
