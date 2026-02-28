@@ -104,31 +104,40 @@ export default function Recipes() {
   const handleAddToPlan = () => {
     if (!recipeToPlan) return;
 
-    const isOccupied = dayPlan?.entries.some((e: any) => e.mealType === selectedMealType);
-    if (isOccupied) {
+    const isOccupiedA = dayPlan?.entries.some((e: any) => e.mealType === selectedMealType && (e.person || "A") === "A");
+    const isOccupiedB = dayPlan?.entries.some((e: any) => e.mealType === selectedMealType && (e.person || "A") === "B");
+    if (isOccupiedA || isOccupiedB) {
       toast({
         variant: "destructive",
         title: "Błąd",
-        description: "Ten posiłek jest już zajęty w wybranym dniu.",
+        description: "Ten posiłek jest już zajęty dla jednej z osób w wybranym dniu.",
       });
       return;
     }
 
-    addEntry({
-      date: selectedDate,
-      mealType: selectedMealType,
-      recipeId: recipeToPlan.id,
-      isEaten: false,
-      servings: 1
-    }, {
-      onSuccess: () => {
+    const addForPerson = (person: "A" | "B") =>
+      new Promise<void>((resolve, reject) => {
+        addEntry({
+          date: selectedDate,
+          mealType: selectedMealType,
+          recipeId: recipeToPlan.id,
+          person,
+          isEaten: false,
+          servings: 1
+        }, {
+          onSuccess: () => resolve(),
+          onError: (err: any) => reject(err),
+        });
+      });
+
+    Promise.all([addForPerson("A"), addForPerson("B")])
+      .then(() => {
         setIsAddToPlanOpen(false);
-        toast({ title: "Sukces", description: "Przepis dodany do planu posiłków." });
-      },
-      onError: (err: any) => {
-        toast({ variant: "destructive", title: "Błąd", description: err.message });
-      }
-    });
+        toast({ title: "Sukces", description: "Przepis dodany do planu dla Osoby A i B." });
+      })
+      .catch((err: any) => {
+        toast({ variant: "destructive", title: "Błąd", description: err?.message || "Nie udało się dodać przepisu." });
+      });
   };
 
   const next7Days = Array.from({ length: 7 }, (_, i) => {
