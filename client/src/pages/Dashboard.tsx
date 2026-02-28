@@ -176,29 +176,6 @@ export default function Dashboard() {
 
   const consumed = calculateConsumed(allEntries);
 
-  const getPreviewServings = (meal: any) => {
-    if (!meal?.recipe) return Number(meal?.servings) || 1;
-
-    const ownServings = Number(meal.servings) || 1;
-    const person = meal.person || activePersonView;
-    const otherPerson = person === "A" ? "B" : "A";
-
-    const pair = allEntries.find((entry: any) =>
-      entry.id !== meal.id &&
-      entry.mealType === meal.mealType &&
-      (entry.person || "A") === otherPerson &&
-      entry.recipe?.id === meal.recipe?.id
-    );
-
-    return ownServings + (Number(pair?.servings) || 0);
-  };
-
-  const openRecipePreview = (meal: any) => {
-    setViewingRecipe(meal.recipe);
-    setViewingMeal(meal);
-    setViewingPlannedServings(getPreviewServings(meal));
-  };
-
   const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
     const recipe = entry.recipe;
     const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
