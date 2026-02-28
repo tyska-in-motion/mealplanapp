@@ -53,8 +53,6 @@ export default function MealPlan() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
-  // Legacy compatibility alias for old merged references still using activePersonView.
-  const activePersonView = selectedPerson;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -290,21 +288,6 @@ export default function MealPlan() {
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
-      </div>
-
-
-      <div className="flex items-center gap-2 mb-6">
-        <span className="text-sm text-muted-foreground">Widok osoby:</span>
-        {(["A", "B"] as const).map((person) => (
-          <Button
-            key={person}
-            size="sm"
-            variant={activePersonView === person ? "default" : "outline"}
-            onClick={() => setActivePersonView(person)}
-          >
-            Osoba {person}
-          </Button>
-        ))}
       </div>
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
