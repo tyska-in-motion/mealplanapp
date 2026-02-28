@@ -28,6 +28,7 @@ export default function Dashboard() {
   const { mutate: toggleEaten } = useToggleEaten();
   const [viewingRecipe, setViewingRecipe] = useState<any>(null);
   const [viewingMeal, setViewingMeal] = useState<any>(null);
+  const [viewingPlannedServings, setViewingPlannedServings] = useState<number | undefined>(undefined);
 
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [editingMealIngredients, setEditingMealIngredients] = useState<any[]>([]);
@@ -129,6 +130,8 @@ export default function Dashboard() {
   const targets = settings || { targetCalories: 2000, targetProtein: 150, targetCarbs: 200, targetFat: 65 };
   const isToday = dateStr === todayStr;
   const allEntries = dayPlan?.entries || [];
+  // Legacy fallback for older merged fragments that still reference activePersonView.
+  const activePersonView = "A" as const;
   const personName: Record<string, string> = { A: "Tysia", B: "Mati" };
 
   const calculateConsumed = (entries: any[]) => {
@@ -173,6 +176,29 @@ export default function Dashboard() {
 
   const consumed = calculateConsumed(allEntries);
 
+  const getPreviewServings = (meal: any) => {
+    if (!meal?.recipe) return Number(meal?.servings) || 1;
+
+    const ownServings = Number(meal.servings) || 1;
+    const person = meal.person || activePersonView;
+    const otherPerson = person === "A" ? "B" : "A";
+
+    const pair = allEntries.find((entry: any) =>
+      entry.id !== meal.id &&
+      entry.mealType === meal.mealType &&
+      (entry.person || "A") === otherPerson &&
+      entry.recipe?.id === meal.recipe?.id
+    );
+
+    return ownServings + (Number(pair?.servings) || 0);
+  };
+
+  const openRecipePreview = (meal: any) => {
+    setViewingRecipe(meal.recipe);
+    setViewingMeal(meal);
+    setViewingPlannedServings(getPreviewServings(meal));
+  };
+
   const totalDayCost = (dayPlan?.entries || []).reduce((acc: number, entry: any) => {
     const recipe = entry.recipe;
     const entryIngredients = entry.ingredients.length > 0 ? entry.ingredients : (recipe?.ingredients || []);
@@ -190,6 +216,18 @@ export default function Dashboard() {
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Witaj! 🌱</h1>
+          <div className="flex items-center gap-2 mb-2">
+            {(["A", "B"] as const).map((person) => (
+              <Button
+                key={person}
+                size="sm"
+                variant={activePersonView === person ? "default" : "outline"}
+                onClick={() => setActivePersonView(person)}
+              >
+                Osoba {person}
+              </Button>
+            ))}
+          </div>
           <div className="flex items-center gap-4">
             <p className="text-muted-foreground text-lg">
               {isToday ? "Podsumowanie na dziś," : "Podsumowanie na"} <span className="font-semibold text-foreground">{format(date, "EEEE, d MMMM", { locale: pl })}</span>
@@ -288,8 +326,9 @@ export default function Dashboard() {
         onClose={() => {
           setViewingRecipe(null);
           setViewingMeal(null);
+          setViewingPlannedServings(undefined);
         }}
-        plannedServings={viewingMeal ? Number(viewingMeal.servings) : undefined}
+        plannedServings={viewingPlannedServings ?? (viewingMeal ? Number(viewingMeal.servings) : undefined)}
         mealEntryIngredients={viewingMeal?.ingredients}
         onEditIngredients={startEditing}
         showFooter={false}
