@@ -609,71 +609,94 @@ export default function MealPlan() {
 
                     <div className="flex flex-wrap gap-2">
                       {(selectedRecipeToAdd.frequentAddons || []).map((addon: any) => (
-                        <Button
+                        <div
                           key={addon.ingredientId}
-                          type="button"
-                          variant="outline"
-                          className="h-9 rounded-full px-3"
-                          onClick={() => increaseAddonAmount(addon)}
+                          className="flex items-center gap-1 rounded-full border border-border bg-white px-2 py-1"
                         >
-                          <Plus className="mr-1 h-4 w-4" />
-                          {Math.round(Number(addon.amount) || 0)}g {addon.ingredient?.name || "Składnik"}
-                        </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full"
+                            onClick={() => decreaseAddonAmount(addon)}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+
+                          <button
+                            type="button"
+                            onClick={() => increaseAddonAmount(addon)}
+                            className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-100"
+                          >
+                            + {Math.round(Number(addon.amount) || 0)}g {addon.ingredient?.name || "Składnik"}
+                          </button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full"
+                            onClick={() => increaseAddonAmount(addon)}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
 
-                    {Object.keys(selectedFrequentAddons).length > 0 && (
-                      <div className="space-y-2">
-                        {(selectedRecipeToAdd.frequentAddons || [])
-                          .filter((addon: any) => (selectedFrequentAddons[addon.ingredientId] || 0) > 0)
-                          .map((addon: any) => {
-                            const selectedAmount = selectedFrequentAddons[addon.ingredientId] || 0;
-                            const baseAmount = Number(addon.amount) || 1;
-                            const repeatCount = Math.max(1, Math.round(selectedAmount / baseAmount));
+                    <div className="space-y-2">
+                      {(selectedRecipeToAdd.frequentAddons || []).map((addon: any) => {
+                        const selectedAmount = selectedFrequentAddons[addon.ingredientId] || 0;
+                        const baseAmount = Number(addon.amount) || 1;
+                        const repeatCount = Math.round(selectedAmount / baseAmount);
 
-                            return (
-                              <div
-                                key={`selected-${addon.ingredientId}`}
-                                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-white p-2"
+                        return (
+                          <div
+                            key={`selected-${addon.ingredientId}`}
+                            className={cn(
+                              "flex flex-wrap items-center gap-2 rounded-lg border bg-white p-2 transition-colors",
+                              selectedAmount > 0 ? "border-emerald-200" : "border-border"
+                            )}
+                          >
+                            <span className="min-w-[140px] text-sm font-medium">
+                              {addon.ingredient?.name || "Składnik"}
+                            </span>
+
+                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => decreaseAddonAmount(addon)}>
+                              <Minus className="h-4 w-4" />
+                            </Button>
+
+                            <Input
+                              type="number"
+                              min={0}
+                              value={selectedAmount}
+                              onChange={(e) => setAddonAmount(addon.ingredientId, Number(e.target.value) || 0)}
+                              className="h-8 w-24"
+                            />
+
+                            <span className="text-xs text-muted-foreground">g</span>
+
+                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => increaseAddonAmount(addon)}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+
+                            <span className="text-xs text-muted-foreground">x{Math.max(0, repeatCount)}</span>
+
+                            {selectedAmount > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="ml-auto h-8 w-8 text-muted-foreground"
+                                onClick={() => setAddonAmount(addon.ingredientId, 0)}
                               >
-                                <span className="min-w-[140px] text-sm font-medium">
-                                  {addon.ingredient?.name || "Składnik"}
-                                </span>
-
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => decreaseAddonAmount(addon)}>
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  value={selectedAmount}
-                                  onChange={(e) => setAddonAmount(addon.ingredientId, Number(e.target.value) || 0)}
-                                  className="h-8 w-24"
-                                />
-
-                                <span className="text-xs text-muted-foreground">g</span>
-
-                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => increaseAddonAmount(addon)}>
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-
-                                <span className="text-xs text-muted-foreground">x{repeatCount}</span>
-
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="ml-auto h-8 w-8 text-muted-foreground"
-                                  onClick={() => setAddonAmount(addon.ingredientId, 0)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )}
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
