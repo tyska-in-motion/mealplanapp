@@ -54,7 +54,7 @@ export default function MealPlan() {
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<"A" | "B">("A");
   const [selectedRecipeToAdd, setSelectedRecipeToAdd] = useState<any>(null);
-  const [selectedFrequentAddons, setSelectedFrequentAddons] = useState<number[]>([]);
+  const [selectedFrequentAddons, setSelectedFrequentAddons] = useState<Record<number, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -165,7 +165,7 @@ export default function MealPlan() {
     setSelectedTag(null);
     setSelectedPerson(person);
     setSelectedRecipeToAdd(null);
-    setSelectedFrequentAddons([]);
+    setSelectedFrequentAddons({});
     setIsAddOpen(true);
   };
 
@@ -191,15 +191,18 @@ export default function MealPlan() {
     setSelectedMealType(null);
     setSelectedDateStr(null);
     setSelectedRecipeToAdd(null);
-    setSelectedFrequentAddons([]);
+    setSelectedFrequentAddons({});
   };
 
   const handleAdd = (recipeId: number, recipe?: any) => {
     if (!selectedMealType || !selectedDateStr) return;
 
-    const selectedAddons = (recipe?.frequentAddons || []).filter((addon: any) =>
-      selectedFrequentAddons.includes(addon.ingredientId)
-    );
+    const selectedAddons = (recipe?.frequentAddons || [])
+      .map((addon: any) => ({
+        ...addon,
+        amount: Number(selectedFrequentAddons[addon.ingredientId] || 0),
+      }))
+      .filter((addon: any) => addon.amount > 0);
     
     addEntry({
       date: selectedDateStr,
@@ -241,6 +244,52 @@ export default function MealPlan() {
           onSuccess: closeAddDialog,
         });
       }
+    });
+  };
+
+
+
+  const increaseAddonAmount = (addon: any) => {
+    const addonStep = Number(addon.amount) || 0;
+    if (addonStep <= 0) return;
+
+    setSelectedFrequentAddons((prev) => ({
+      ...prev,
+      [addon.ingredientId]: (prev[addon.ingredientId] || 0) + addonStep,
+    }));
+  };
+
+  const decreaseAddonAmount = (addon: any) => {
+    const addonStep = Number(addon.amount) || 0;
+    if (addonStep <= 0) return;
+
+    setSelectedFrequentAddons((prev) => {
+      const current = prev[addon.ingredientId] || 0;
+      const nextAmount = Math.max(0, current - addonStep);
+      if (nextAmount === 0) {
+        const { [addon.ingredientId]: _removed, ...rest } = prev;
+        return rest;
+      }
+
+      return {
+        ...prev,
+        [addon.ingredientId]: nextAmount,
+      };
+    });
+  };
+
+  const setAddonAmount = (ingredientId: number, amount: number) => {
+    setSelectedFrequentAddons((prev) => {
+      const nextAmount = Math.max(0, Math.round(amount));
+      if (nextAmount === 0) {
+        const { [ingredientId]: _removed, ...rest } = prev;
+        return rest;
+      }
+
+      return {
+        ...prev,
+        [ingredientId]: nextAmount,
+      };
     });
   };
 
@@ -525,7 +574,7 @@ export default function MealPlan() {
                     key={recipe.id}
                     onClick={() => {
                       setSelectedRecipeToAdd(recipe);
-                      setSelectedFrequentAddons([]);
+                      setSelectedFrequentAddons({});
                     }}
                     className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary transition-colors text-left border border-transparent hover:border-border"
                   >
@@ -555,25 +604,76 @@ export default function MealPlan() {
                 <p className="text-sm font-semibold">Wybrany przepis: {selectedRecipeToAdd.name}</p>
 
                 {(selectedRecipeToAdd.frequentAddons || []).length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-xs font-medium text-muted-foreground">Opcjonalne dodatki:</p>
-                    {(selectedRecipeToAdd.frequentAddons || []).map((addon: any) => (
-                      <label key={addon.ingredientId} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedFrequentAddons.includes(addon.ingredientId)}
-                          onChange={(e) => {
-                            setSelectedFrequentAddons((prev) =>
-                              e.target.checked
-                                ? [...prev, addon.ingredientId]
-                                : prev.filter((id) => id !== addon.ingredientId)
+
+                    <div className="flex flex-wrap gap-2">
+                      {(selectedRecipeToAdd.frequentAddons || []).map((addon: any) => (
+                        <Button
+                          key={addon.ingredientId}
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-full px-3"
+                          onClick={() => increaseAddonAmount(addon)}
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          {Math.round(Number(addon.amount) || 0)}g {addon.ingredient?.name || "Składnik"}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {Object.keys(selectedFrequentAddons).length > 0 && (
+                      <div className="space-y-2">
+                        {(selectedRecipeToAdd.frequentAddons || [])
+                          .filter((addon: any) => (selectedFrequentAddons[addon.ingredientId] || 0) > 0)
+                          .map((addon: any) => {
+                            const selectedAmount = selectedFrequentAddons[addon.ingredientId] || 0;
+                            const baseAmount = Number(addon.amount) || 1;
+                            const repeatCount = Math.max(1, Math.round(selectedAmount / baseAmount));
+
+                            return (
+                              <div
+                                key={`selected-${addon.ingredientId}`}
+                                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-white p-2"
+                              >
+                                <span className="min-w-[140px] text-sm font-medium">
+                                  {addon.ingredient?.name || "Składnik"}
+                                </span>
+
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => decreaseAddonAmount(addon)}>
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={selectedAmount}
+                                  onChange={(e) => setAddonAmount(addon.ingredientId, Number(e.target.value) || 0)}
+                                  className="h-8 w-24"
+                                />
+
+                                <span className="text-xs text-muted-foreground">g</span>
+
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => increaseAddonAmount(addon)}>
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+
+                                <span className="text-xs text-muted-foreground">x{repeatCount}</span>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="ml-auto h-8 w-8 text-muted-foreground"
+                                  onClick={() => setAddonAmount(addon.ingredientId, 0)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
                             );
-                          }}
-                        />
-                        <span>{addon.ingredient?.name || "Składnik"}</span>
-                        <span className="text-muted-foreground">+{addon.amount} g</span>
-                      </label>
-                    ))}
+                          })}
+                      </div>
+                    )}
                   </div>
                 )}
 
