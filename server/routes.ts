@@ -285,7 +285,31 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.mealPlan.copyDay.path, async (req, res) => {
+    try {
+      const { sourceDate, targetDate, replaceTarget } = api.mealPlan.copyDay.input.parse(req.body);
+
+      if (!sourceDate || !targetDate) {
+        return res.status(400).json({ message: "Wymagane daty źródłowa i docelowa" });
+      }
+
+      const copiedEntries = await storage.copyDayEntries(sourceDate, targetDate, replaceTarget);
+      res.json({ copiedEntries });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      if (err instanceof Error) {
+        return res.status(400).json({ message: err.message });
+      }
+
+      res.status(500).json({ message: "Błąd serwera" });
+    }
+  });
+
   app.patch("/api/meal-plan/entry/:id", async (req, res) => {
+
     try {
       const id = Number(req.params.id);
       const { ingredients: ingredientsList, ...updates } = req.body;

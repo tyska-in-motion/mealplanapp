@@ -156,6 +156,19 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    copyDay: {
+      method: 'POST' as const,
+      path: '/api/meal-plan/copy-day',
+      input: z.object({
+        sourceDate: z.string(),
+        targetDate: z.string(),
+        replaceTarget: z.boolean().optional().default(true),
+      }),
+      responses: {
+        200: z.object({ copiedEntries: z.number() }),
+        400: errorSchemas.validation,
+      },
+    },
     toggleEaten: {
       method: 'PATCH' as const,
       path: '/api/meal-plan/:id/toggle',

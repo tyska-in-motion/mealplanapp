@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { format, addDays, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { pl } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye, Carrot } from "lucide-react";
-import { useDayPlan, useAddMealEntry, useDeleteMealEntry, useToggleEaten, useUpdateMealEntry } from "@/hooks/use-meal-plan";
+import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Circle, Minus, Eye, Carrot, Copy } from "lucide-react";
+import { useDayPlan, useAddMealEntry, useDeleteMealEntry, useToggleEaten, useUpdateMealEntry, useCopyDayPlan } from "@/hooks/use-meal-plan";
 import { useRecipes } from "@/hooks/use-recipes";
 import { useIngredients } from "@/hooks/use-ingredients";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -44,6 +44,7 @@ export default function MealPlan() {
   const { mutate: deleteEntry } = useDeleteMealEntry();
   const { mutate: toggleEaten } = useToggleEaten();
   const { mutate: updateMealEntry, isPending: isSaving } = useUpdateMealEntry();
+  const { mutate: copyDayPlan, isPending: isCopyingDay } = useCopyDayPlan();
   const { data: allAvailableIngredients } = useIngredients();
   const { toast } = useToast();
   
@@ -67,6 +68,8 @@ export default function MealPlan() {
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
   const [ingredientAmount, setIngredientAmount] = useState(100);
+  const [copySourceDate, setCopySourceDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [copyTargetDate, setCopyTargetDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
 
   const frequentAddonDefinitions = viewingRecipe?.frequentAddons || [];
   const frequentAddonIngredientIds = useMemo(() => new Set(
@@ -389,6 +392,20 @@ export default function MealPlan() {
     });
   };
 
+  const handleCopyDay = () => {
+    if (!copySourceDate || !copyTargetDate) {
+      toast({ title: "Błąd", description: "Wybierz dzień źródłowy i docelowy.", variant: "destructive" });
+      return;
+    }
+
+    if (copySourceDate === copyTargetDate) {
+      toast({ title: "Błąd", description: "Wybierz różne dni.", variant: "destructive" });
+      return;
+    }
+
+    copyDayPlan({ sourceDate: copySourceDate, targetDate: copyTargetDate });
+  };
+
   const filteredIngredients = useMemo(() => {
     if (!allAvailableIngredients) return [];
     if (!ingredientSearch.trim()) return allAvailableIngredients;
@@ -413,6 +430,36 @@ export default function MealPlan() {
           </button>
         </div>
       </div>
+      <section className="mb-6 rounded-2xl border border-border/60 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 flex-1">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Kopiuj z dnia</label>
+              <Input
+                type="date"
+                value={copySourceDate}
+                onChange={(e) => setCopySourceDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Wklej do dnia</label>
+              <Input
+                type="date"
+                value={copyTargetDate}
+                onChange={(e) => setCopyTargetDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button onClick={handleCopyDay} disabled={isCopyingDay} className="md:min-w-[220px]">
+            <Copy className="mr-2 h-4 w-4" />
+            {isCopyingDay ? "Kopiowanie..." : "Kopiuj cały dzień"}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Skopiowanie zastępuje plan docelowego dnia wpisami z dnia źródłowego dla Tysi i Matiego.
+        </p>
+      </section>
+
       <div className="flex flex-col gap-12">
         {weekDays.map((day) => (
           <DaySection 

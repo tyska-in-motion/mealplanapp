@@ -119,12 +119,70 @@ export default function Summary() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
-    const dailyHistory = days.map((day) => ({
-      date: day.date,
-      label: format(new Date(day.date), "d MMM", { locale: pl }),
-      price: Number(day.totalPrice) || 0,
-      calories: Number(day.totalCalories) || 0,
-    }));
+    const dailyHistory = days.map((day) => {
+      const entries = day.entries || [];
+      const getPersonCalories = (person: "A" | "B") => {
+        return Math.round(entries
+          .filter((entry: any) => (entry.person || "A") === person)
+          .reduce((sum: number, entry: any) => {
+            if (!entry.recipe) {
+              const servings = Number(entry.servings) || 1;
+              return sum + (Number(entry.customCalories) || 0) * servings;
+            }
+
+            const recipeServings = Number(entry.recipe?.servings) || 1;
+            const entryServings = Number(entry.servings) || 1;
+            const factor = entryServings / recipeServings;
+            const ingredientsToUse = entry.ingredients?.length > 0 ? entry.ingredients : (entry.recipe?.ingredients || []);
+
+            const kcal = ingredientsToUse.reduce((kcalSum: number, ri: any) => {
+              if (!ri.ingredient) return kcalSum;
+              return kcalSum + ((Number(ri.ingredient.calories) || 0) * (Number(ri.amount) || 0) / 100);
+            }, 0);
+
+            return sum + kcal * factor;
+          }, 0));
+      };
+
+      const getPersonPrice = (person: "A" | "B") => {
+        return entries
+          .filter((entry: any) => (entry.person || "A") === person)
+          .reduce((sum: number, entry: any) => {
+            if (!entry.recipe) {
+              return sum + (Number(entry.customPrice) || 0) * (Number(entry.servings) || 1);
+            }
+
+            const recipeServings = Number(entry.recipe?.servings) || 1;
+            const entryServings = Number(entry.servings) || 1;
+            const factor = entryServings / recipeServings;
+            const ingredientsToUse = entry.ingredients?.length > 0 ? entry.ingredients : (entry.recipe?.ingredients || []);
+
+            const price = ingredientsToUse.reduce((priceSum: number, ri: any) => {
+              if (!ri.ingredient) return priceSum;
+              return priceSum + ((Number(ri.ingredient.price) || 0) * (Number(ri.amount) || 0) / 100);
+            }, 0);
+
+            return sum + price * factor;
+          }, 0);
+      };
+
+      return {
+        date: day.date,
+        label: format(new Date(day.date), "d MMM", { locale: pl }),
+        price: Number(day.totalPrice) || 0,
+        calories: Number(day.totalCalories) || 0,
+        perPerson: {
+          A: {
+            calories: getPersonCalories("A"),
+            price: getPersonPrice("A"),
+          },
+          B: {
+            calories: getPersonCalories("B"),
+            price: getPersonPrice("B"),
+          },
+        },
+      };
+    });
 
     return {
       days,
@@ -233,23 +291,30 @@ export default function Summary() {
               </div>
             </section>
 
-            <section className="rounded-2xl border bg-white p-4 shadow-sm">
-              <h2 className="mb-3 text-lg font-semibold">Historia dzienna (koszt i kalorie)</h2>
-              <div className="space-y-2">
-                {analytics.dailyHistory.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Brak danych dla wybranego okresu.</p>
-                ) : (
-                  analytics.dailyHistory.map((day) => (
-                    <div key={day.date} className="grid grid-cols-[90px_1fr_auto] items-center gap-3 rounded-lg border px-3 py-2">
-                      <span className="text-sm font-medium">{day.label}</span>
-                      <div className="h-2 rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-primary" style={{ width: `${Math.min(100, day.calories / 30)}%` }} />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{day.calories} kcal • {day.price.toFixed(2)} PLN</span>
-                    </div>
-                  ))
-                )}
-              </div>
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {[{ key: "A", name: "Tysia" }, { key: "B", name: "Mati" }].map((person) => (
+                <div key={person.key} className="rounded-2xl border bg-white p-4 shadow-sm">
+                  <h2 className="mb-3 text-lg font-semibold">Historia dzienna — {person.name}</h2>
+                  <div className="space-y-2">
+                    {analytics.dailyHistory.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Brak danych dla wybranego okresu.</p>
+                    ) : (
+                      analytics.dailyHistory.map((day) => {
+                        const personData = day.perPerson[person.key as "A" | "B"];
+                        return (
+                          <div key={`${person.key}-${day.date}`} className="grid grid-cols-[90px_1fr_auto] items-center gap-3 rounded-lg border px-3 py-2">
+                            <span className="text-sm font-medium">{day.label}</span>
+                            <div className="h-2 rounded-full bg-muted">
+                              <div className="h-2 rounded-full bg-primary" style={{ width: `${Math.min(100, personData.calories / 30)}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground">{personData.calories} kcal • {personData.price.toFixed(2)} PLN</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ))}
             </section>
           </>
         )}
