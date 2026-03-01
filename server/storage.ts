@@ -44,6 +44,7 @@ export interface IStorage {
   deleteMealEntry(id: number): Promise<void>;
   getMealEntriesRange(startDate: string, endDate: string): Promise<MealEntryWithRecipe[]>;
   updateMealEntryIngredients(mealEntryId: number, ingredients: { ingredientId: number; amount: number }[]): Promise<void>;
+  copyDayEntries(sourceDate: string, targetDate: string, replaceTarget?: boolean): Promise<number>;
 
   // Shopping List Checks
   getShoppingListChecks(): Promise<Record<number, boolean>>;
@@ -344,6 +345,55 @@ export class DatabaseStorage implements IStorage {
     });
     // Optional: add a small delay or logging to verify
     console.log(`Ingredients updated for meal entry ${mealEntryId}`);
+  }
+
+  async copyDayEntries(sourceDate: string, targetDate: string, replaceTarget = true): Promise<number> {
+    if (sourceDate === targetDate) {
+      throw new Error("Dzień źródłowy i docelowy muszą się różnić");
+    }
+
+    const sourceEntries = await this.getDayEntries(sourceDate);
+
+    await db.transaction(async (tx) => {
+      if (replaceTarget) {
+        const existingTargetEntries = await tx.select({ id: mealEntries.id })
+          .from(mealEntries)
+          .where(eq(mealEntries.date, targetDate));
+
+        const targetEntryIds = existingTargetEntries.map((entry) => entry.id);
+        if (targetEntryIds.length > 0) {
+          await tx.delete(mealEntryIngredients).where(inArray(mealEntryIngredients.mealEntryId, targetEntryIds));
+          await tx.delete(mealEntries).where(inArray(mealEntries.id, targetEntryIds));
+        }
+      }
+
+      for (const sourceEntry of sourceEntries) {
+        const [copiedEntry] = await tx.insert(mealEntries).values({
+          date: targetDate,
+          recipeId: sourceEntry.recipeId,
+          customName: sourceEntry.customName,
+          customCalories: sourceEntry.customCalories,
+          customProtein: sourceEntry.customProtein,
+          customCarbs: sourceEntry.customCarbs,
+          customFat: sourceEntry.customFat,
+          mealType: sourceEntry.mealType,
+          person: sourceEntry.person,
+          servings: sourceEntry.servings,
+          isEaten: sourceEntry.isEaten,
+        }).returning();
+
+        const sourceIngredients = sourceEntry.ingredients || [];
+        if (sourceIngredients.length > 0) {
+          await tx.insert(mealEntryIngredients).values(sourceIngredients.map((ingredient) => ({
+            mealEntryId: copiedEntry.id,
+            ingredientId: ingredient.ingredientId,
+            amount: ingredient.amount,
+          })));
+        }
+      }
+    });
+
+    return sourceEntries.length;
   }
 
   async deleteMealEntry(id: number): Promise<void> {

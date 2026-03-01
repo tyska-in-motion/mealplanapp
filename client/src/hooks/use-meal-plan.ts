@@ -96,6 +96,41 @@ export function useUpdateMealEntry() {
   });
 }
 
+export function useCopyDayPlan() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ sourceDate, targetDate }: { sourceDate: string; targetDate: string }) => {
+      const res = await fetch(api.mealPlan.copyDay.path, {
+        method: api.mealPlan.copyDay.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceDate, targetDate, replaceTarget: true }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Nie udało się skopiować dnia");
+      }
+
+      return api.mealPlan.copyDay.responses[200].parse(await res.json());
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.mealPlan.getDay.path, variables.sourceDate] });
+      queryClient.invalidateQueries({ queryKey: [api.mealPlan.getDay.path, variables.targetDate] });
+      queryClient.invalidateQueries({ queryKey: [api.mealPlan.getShoppingList.path] });
+      toast({ title: "Sukces", description: "Dzień został skopiowany." });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Błąd",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useShoppingList(startDate: string, endDate: string) {
   return useQuery({
     queryKey: [api.mealPlan.getShoppingList.path, startDate, endDate],
