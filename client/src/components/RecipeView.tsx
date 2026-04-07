@@ -43,7 +43,7 @@ export function RecipeView({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white">
         <div className="space-y-6">
           <div 
             className="h-64 rounded-2xl bg-cover bg-center"
@@ -103,7 +103,7 @@ export function RecipeView({
             </div>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 overflow-x-hidden">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold">Składniki</h3>
@@ -124,7 +124,7 @@ export function RecipeView({
                     className={`flex flex-col p-2 rounded-lg border ${isFrequentAddon ? "border-emerald-300 bg-emerald-50/70" : "border-transparent bg-secondary/50"}`}
                   >
                     <div className="flex justify-between items-center gap-2">
-                      <span className="font-semibold">
+                      <span className="min-w-0 break-words font-semibold [overflow-wrap:anywhere]">
                         {ri.ingredient?.name}
                         {isFrequentAddon && (
                           <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
@@ -148,7 +148,7 @@ export function RecipeView({
             </div>
             <div>
               <h3 className="text-lg font-bold mb-3">Instrukcje</h3>
-              <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
+              <p className="whitespace-pre-wrap break-words text-muted-foreground leading-relaxed [overflow-wrap:anywhere]">
                 {recipe.instructions || "Brak instrukcji."}
               </p>
             </div>
