@@ -43,7 +43,7 @@ export function RecipeView({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white px-4 sm:px-6">
         <div className="space-y-6">
           <div 
             className="h-64 rounded-2xl bg-cover bg-center"
