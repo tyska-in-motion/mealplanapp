@@ -103,7 +103,7 @@ export function RecipeView({
             </div>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8 overflow-x-hidden">
+          <div className="grid gap-6 overflow-x-hidden md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:gap-8">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold">Składniki</h3>
@@ -146,9 +146,9 @@ export function RecipeView({
                 })}
               </ul>
             </div>
-            <div>
+            <div className="min-w-0 md:max-w-[28ch]">
               <h3 className="text-lg font-bold mb-3">Instrukcje</h3>
-              <p className="whitespace-pre-wrap break-words text-muted-foreground leading-relaxed [overflow-wrap:anywhere]">
+              <p className="max-w-full whitespace-pre-wrap break-words text-muted-foreground leading-relaxed [overflow-wrap:anywhere] break-all">
                 {recipe.instructions || "Brak instrukcji."}
               </p>
             </div>
