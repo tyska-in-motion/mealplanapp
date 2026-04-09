@@ -97,6 +97,7 @@ export default function Ingredients() {
       price: 0,
     },
   });
+  const { isDirty: isIngredientFormDirty } = form.formState;
 
   const openEdit = (ingredient: any) => {
     setEditingIngredient(ingredient);
@@ -140,7 +141,7 @@ export default function Ingredients() {
     }
 
     const isCreatingNewIngredient = !editingIngredient;
-    if (isCreatingNewIngredient && form.formState.isDirty) {
+    if (isCreatingNewIngredient && isIngredientFormDirty) {
       const shouldDiscard = window.confirm("Masz niezapisane zmiany. Czy na pewno chcesz porzucić dodawanie składnika?");
       if (!shouldDiscard) {
         return;

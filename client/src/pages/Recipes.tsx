@@ -212,6 +212,7 @@ export default function Recipes() {
       frequentAddons: [] as { ingredientId: number; amount: number }[],
     },
   });
+  const { isDirty: isRecipeFormDirty } = form.formState;
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -289,7 +290,7 @@ export default function Recipes() {
     }
 
     const isCreatingNewRecipe = !editingRecipe;
-    if (isCreatingNewRecipe && form.formState.isDirty) {
+    if (isCreatingNewRecipe && isRecipeFormDirty) {
       const shouldDiscard = window.confirm("Masz niezapisane zmiany. Czy na pewno chcesz porzucić dodawanie przepisu?");
       if (!shouldDiscard) {
         return;
