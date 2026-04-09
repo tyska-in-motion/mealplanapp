@@ -282,6 +282,23 @@ export default function Recipes() {
     });
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setIsOpen(true);
+      return;
+    }
+
+    const isCreatingNewRecipe = !editingRecipe;
+    if (isCreatingNewRecipe && form.formState.isDirty) {
+      const shouldDiscard = window.confirm("Masz niezapisane zmiany. Czy na pewno chcesz porzucić dodawanie przepisu?");
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+
+    closeDialog();
+  };
+
   const { mutate: createRecipeMutation, isPending: isCreating } = useCreateRecipe();
   const { mutate: updateRecipeMutation, isPending: isUpdating } = useUpdateRecipe();
 
@@ -319,7 +336,7 @@ export default function Recipes() {
           <p className="text-muted-foreground">Znajdź lub stwórz swój kolejny ulubiony posiłek.</p>
         </div>
         
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-recipe" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl h-12 px-6 shadow-lg shadow-primary/20" onClick={() => setIsOpen(true)}>
               <Plus className="w-5 h-5" /> Stwórz przepis
@@ -561,7 +578,7 @@ export default function Recipes() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Anuluj</Button>
+                <Button type="button" variant="ghost" onClick={() => handleDialogOpenChange(false)}>Anuluj</Button>
                 <Button type="submit" disabled={isCreating || isUpdating}>
                   {isCreating || isUpdating ? "Zapisywanie..." : "Zapisz przepis"}
                 </Button>
