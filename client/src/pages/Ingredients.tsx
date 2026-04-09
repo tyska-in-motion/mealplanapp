@@ -133,6 +133,23 @@ export default function Ingredients() {
     });
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setIsOpen(true);
+      return;
+    }
+
+    const isCreatingNewIngredient = !editingIngredient;
+    if (isCreatingNewIngredient && form.formState.isDirty) {
+      const shouldDiscard = window.confirm("Masz niezapisane zmiany. Czy na pewno chcesz porzucić dodawanie składnika?");
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+
+    closeDialog();
+  };
+
   const onSubmit = (data: any) => {
     if (editingIngredient) {
       updateIngredientMutation({ id: editingIngredient.id, data }, {
@@ -162,7 +179,7 @@ export default function Ingredients() {
           <p className="text-muted-foreground">Zarządzaj swoją bazą produktów (wartości na 100g).</p>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button data-testid="button-add-ingredient" className="bg-primary hover:bg-primary/90 rounded-xl" onClick={() => setIsOpen(true)}>
               <Plus className="w-4 h-4 mr-2" /> Dodaj składnik
