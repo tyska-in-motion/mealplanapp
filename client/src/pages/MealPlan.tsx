@@ -419,15 +419,26 @@ export default function MealPlan() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Plan Tygodniowy</h1>
         <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-border shadow-sm">
-          <button onClick={() => setBaseDate(d => subDays(d, 7))} className="p-2 hover:bg-muted rounded-lg transition-colors">
+          <button
+            onClick={() => setBaseDate(d => subDays(d, 7))}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Poprzedni tydzień"
+          >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="font-semibold w-48 text-center tabular-nums">
             {format(weekDays[0], "d MMM", { locale: pl })} - {format(weekDays[6], "d MMM, yyyy", { locale: pl })}
           </span>
-          <button onClick={() => setBaseDate(d => addDays(d, 7))} className="p-2 hover:bg-muted rounded-lg transition-colors">
+          <button
+            onClick={() => setBaseDate(d => addDays(d, 7))}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Następny tydzień"
+          >
             <ChevronRight className="w-5 h-5" />
           </button>
+          <Button variant="outline" size="sm" onClick={() => setBaseDate(new Date())}>
+            Dzisiaj
+          </Button>
         </div>
       </div>
       <section className="mb-6 rounded-2xl border border-border/60 bg-white p-4 shadow-sm">
@@ -689,7 +700,12 @@ export default function MealPlan() {
                       setSelectedRecipeToAdd(recipe);
                       setSelectedFrequentAddons({});
                     }}
-                    className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary transition-colors text-left border border-transparent hover:border-border"
+                    className={cn(
+                      "flex w-full items-center gap-4 p-3 rounded-xl transition-colors text-left border hover:bg-secondary",
+                      selectedRecipeToAdd?.id === recipe.id
+                        ? "border-primary bg-primary/5"
+                        : "border-transparent hover:border-border"
+                    )}
                   >
                     <div className="w-12 h-12 rounded-lg bg-cover bg-center bg-muted flex-shrink-0" style={{ backgroundImage: `url(${recipe.imageUrl})` }} />
                     <div className="min-w-0">
@@ -703,6 +719,9 @@ export default function MealPlan() {
                         ))}
                       </div>
                     </div>
+                    {selectedRecipeToAdd?.id === recipe.id && (
+                      <Check className="ml-auto h-4 w-4 text-primary" />
+                    )}
                   </button>
                 ))
               ) : (
@@ -1032,10 +1051,10 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => onAddIngredient(mealType, dateStr, person)} title="Dodaj składnik">
                             <Carrot className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddCustom(mealType, dateStr, person)} title="Add Custom">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddCustom(mealType, dateStr, person)} title="Dodaj własny produkt">
                             <Plus className="w-3 h-3 border rounded-full p-0.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddMeal(mealType, dateStr, person)} title="Add Recipe">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => onAddMeal(mealType, dateStr, person)} title="Dodaj przepis">
                             <Plus className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1057,7 +1076,7 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                                   {entry.recipe?.name || entry.customName}
                                 </p>
                                 {entry.recipe && (
-                                  <button onClick={() => onViewPlannedRecipe(entry.recipe, entry)} className="text-muted-foreground hover:text-primary transition-colors">
+                                  <button onClick={() => onViewPlannedRecipe(entry.recipe, entry)} className="text-muted-foreground hover:text-primary transition-colors" aria-label="Pokaż szczegóły przepisu">
                                     <Eye className="w-3 h-3" />
                                   </button>
                                 )}
@@ -1106,21 +1125,21 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
 
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1">
+                                  <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1" aria-label="Usuń z planu">
                                     <X className="w-4 h-4" />
                                   </button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Remove from plan?</AlertDialogTitle>
+                                    <AlertDialogTitle>Usunąć z planu?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Remove "{entry.recipe?.name || entry.customName}" from {format(day, "EEEE", { locale: pl })}'s plan?
+                                      Czy na pewno chcesz usunąć „{entry.recipe?.name || entry.customName}” z planu na {format(day, "EEEE", { locale: pl })}?
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => onDeleteMeal({ id: entry.id, date: dateStr })} className="bg-red-500 hover:bg-red-600">
-                                      Remove
+                                      Usuń
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -1130,8 +1149,8 @@ function DaySection({ day, recipes, onAddMeal, onAddCustom, onAddIngredient, onD
                         ))}
 
                         {entries.length === 0 && (
-                          <div className="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs py-4">
-                            Empty
+                          <div className="flex items-center justify-center h-full text-muted-foreground/50 italic text-xs py-4 text-center">
+                            Brak posiłków — dodaj przepis, własny produkt lub składnik.
                           </div>
                         )}
                       </div>
